@@ -7,12 +7,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -24,6 +26,7 @@ import com.diasec.diasec_backend.service.OrderService;
 import com.diasec.diasec_backend.service.ReviewService;
 import com.diasec.diasec_backend.util.ImageUtil;
 import com.diasec.diasec_backend.vo.CreditVo;
+import com.diasec.diasec_backend.vo.OrderVo;
 import com.diasec.diasec_backend.vo.ReviewVo;
 
 
@@ -44,6 +47,9 @@ public class ReviewController {
     @Autowired
     private ImageUtil imageUtil;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @Value("${file.upload.dir}")
     private String uploadDir;
 
@@ -54,6 +60,34 @@ public class ReviewController {
     @GetMapping("/eligible")
     public List<ReviewVo> getEligible(@RequestParam String id) {
         return reviewService.getEligibleReviews(id);
+    }
+
+    /** 비회원: 주문번호 + 주문조회 비밀번호로 작성 가능한 배송완료 상품 목록 */
+    @PostMapping("/guest-eligible")
+    public ResponseEntity<?> getGuestEligible(@RequestBody Map<String, String> req) {
+        try {
+            Long oid = Long.valueOf(req.get("oid"));
+            String guestPassword = req.get("guestPassword");
+
+            OrderVo order = orderService.selectOrderByOid(oid);
+            if (order == null || order.getGuestPassword() == null || order.getGuestPassword().isBlank()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("success", false, "message", "주문을 찾을 수 없습니다."));
+            }
+            if (guestPassword == null || !passwordEncoder.matches(guestPassword, order.getGuestPassword())) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("success", false, "message", "비밀번호가 일치하지 않습니다."));
+            }
+
+            return ResponseEntity.ok(reviewService.getEligibleReviewsByGuestOid(oid));
+        } catch (NumberFormatException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("success", false, "message", "올바른 주문번호가 아닙니다."));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("success", false, "message", "조회에 실패했습니다."));
+        }
     }
     
     // 리뷰 작성
@@ -109,6 +143,68 @@ public class ReviewController {
             return ResponseEntity.ok().body(Map.of(
                 "success", true,
                 "rewardAmount", rewardAmount
+            ));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("success", false));
+        }
+    }
+
+    /** 비회원 리뷰 등록 (적립금 없음, 주문번호+비밀번호로 검증) */
+    @PostMapping("/guest-write")
+    @Transactional
+    public ResponseEntity<?> writeGuestReview(
+        @RequestParam("oid") Long oid,
+        @RequestParam("guestPassword") String guestPassword,
+        @RequestParam("pid") Long pid,
+        @RequestParam("itemId") int itemId,
+        @RequestParam("rating") int rating,
+        @RequestParam("title") String title,
+        @RequestParam("content") String content,
+        @RequestPart(value = "images", required = false) List<MultipartFile> images
+    ) {
+        try {
+            OrderVo order = orderService.selectOrderByOid(oid);
+            if (order == null || order.getGuestPassword() == null || order.getGuestPassword().isBlank()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("success", false, "message", "주문을 찾을 수 없습니다."));
+            }
+            if (guestPassword == null || !passwordEncoder.matches(guestPassword, order.getGuestPassword())) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("success", false, "message", "비밀번호가 일치하지 않습니다."));
+            }
+
+            if (!reviewService.isGuestItemReviewable(oid, itemId, pid)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("success", false, "message", "리뷰를 작성할 수 있는 주문 상태가 아닙니다."));
+            }
+
+            if (reviewService.existsReviewByItemId(itemId)) {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("success", false, "message", "이미 작성된 리뷰입니다."));
+            }
+
+            ReviewVo review = new ReviewVo();
+            review.setPid(pid);
+            review.setId("");
+            review.setRating(rating);
+            review.setTitle(title);
+            review.setContent(content);
+            review.setItem_id(itemId);
+            reviewService.insertReview(review);
+
+            if (images != null) {
+                for (MultipartFile file : images) {
+                    if (!file.isEmpty()) {
+                        String imageUrl = imageUtil.saveImage(file, "review");
+                        reviewService.insertReviewImage(review.getRid(), imageUrl);
+                    }
+                }
+            }
+
+            return ResponseEntity.ok().body(Map.of(
+                "success", true,
+                "rewardAmount", 0
             ));
         } catch (Exception e) {
             e.printStackTrace();

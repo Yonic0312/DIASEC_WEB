@@ -114,6 +114,15 @@ const Order_Detail = () => {
             if (!ok2) return;
         }
 
+        if (newStatus === '배송완료' && item.category === 'customFrames') {
+            const ok3 = window.confirm(
+                '맞춤액자 고해상 원본 이미지는 서버에서 삭제됩니다. (복구 불가)\n' +
+                '150px 썸네일은 배송완료 시점으로부터 최대 30일 보관 후 자동 삭제됩니다.\n' +
+                '계속할까요?'
+            );
+            if (!ok3) return;
+        }
+
         try {
             const res = await fetch(`${API}/admin/order/update-status`, {
             method: 'POST',
@@ -124,20 +133,22 @@ const Order_Detail = () => {
         
         const data = await res.json();
 
-        // 삭제/적립금 결과 토스트 (Order_Status와 동일)
-        if (data.deletedClaimFiles) {
-            toast.success(`클레임 첨부 이미지 (${data.deletedClaimFiles}개)`);
-        }
-        if (data.refundedAmount > 0) {
-            toast.success(`적립금 반환 (+${data.refundedAmount.toLocaleString()}원)`);
-        }
-
         if (!data.success) {
             toast.error("상태 변경 실패");
             return;
         }
 
         toast.success("상태가 변경되었습니다.");
+
+        if (data.deletedClaimFiles > 0) {
+            toast.success(`클레임 첨부 이미지 삭제 (${data.deletedClaimFiles}개)`);
+        }
+        if (data.refundedAmount > 0) {
+            toast.success(`적립금 반환 (+${data.refundedAmount.toLocaleString()}원)`);
+        }
+        if (data.deletedCustomFrameOriginal > 0) {
+            toast.success("맞춤액자 원본 이미지가 삭제되었습니다.");
+        }
 
         reload();
         } catch (err) {
@@ -438,7 +449,7 @@ const Order_Detail = () => {
             }
         }
     }
-    // 인치 -> cm 변환
+    // 인치 -> cm 변환 + P/C 규격 표시
     const convertInchToCm = (size) => {
         if (!size || typeof size !== "string") return size;
 
@@ -453,7 +464,13 @@ const Order_Detail = () => {
         const wCm = Math.round(wInch * 2.54);
         const hCm = Math.round(hInch * 2.54);
 
-        return `약 ${wCm} x ${hCm} cm (${wInch.toFixed(1)} x ${hInch.toFixed(1)} inch)`;
+        const pW = Math.max(0, wCm - 10);
+        const pH = Math.max(0, hCm - 10);
+
+        const cW = Math.max(0, wCm + 3);
+        const cH = Math.max(0, hCm + 3);
+
+        return `${wCm} x ${hCm} cm | P: ${pW} x ${pH} | C: ${cW} x ${cH}`;
     }
 
     const convertCategoryName = (category) => {
@@ -487,7 +504,8 @@ const Order_Detail = () => {
                     oid: order.oid,
                     items: order.items.map(item => ({
                         category: item.category,
-                        thumbnail: item.thumbnail
+                        thumbnail: item.thumbnail,
+                        thumbnailPreview: item.thumbnailPreview
                     }))
                 })
             });
@@ -538,19 +556,18 @@ const Order_Detail = () => {
         });
     };
 
-    // 고객 업로드 보여주기
+    // 고객 업로드 보여주기 (원본 없으면 150px 썸네일)
     const customFrameThumb =
-        order.items[0].thumbnail
+        (order.items[0].thumbnail || order.items[0].thumbnailPreview)
             ? (
-                order.items[0].thumbnail.startsWith('http')
-                    ? order.items[0].thumbnail
-                    : `${FILE_BASE}${order.items[0].thumbnail}`
+                (order.items[0].thumbnail || order.items[0].thumbnailPreview).startsWith('http')
+                    ? (order.items[0].thumbnail || order.items[0].thumbnailPreview)
+                    : `${FILE_BASE}${order.items[0].thumbnail || order.items[0].thumbnailPreview}`
             )
             : thumbCustom;
 
     // const hasCustomUploadImage = !!order.items[0].thumbnail;
             
-    // 맞춤액자시 썸네일 설정
     const displayThumb = 
         order.items[0].category === 'customFrames' 
             ? customFrameThumb
@@ -559,11 +576,34 @@ const Order_Detail = () => {
                     ? order.items[0].thumbnail
                     : `${FILE_BASE}${order.items[0].thumbnail}`
             );
+
+    const handleDeleteCustomThumbnail = async () => {
+        if (!order?.items?.[0]) return;
+        if (!window.confirm("150px 썸네일을 서버에서 삭제할까요? (복구 불가)")) return;
+        try {
+            const res = await fetch(`${API}/admin/order/delete-custom-thumbnail`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ itemId: order.items[0].itemId }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                toast.success("썸네일이 삭제되었습니다.");
+                reload();
+            } else {
+                toast.error("삭제 실패: " + (data.message || ""));
+            }
+        } catch (e) {
+            console.error(e);
+            toast.error("서버 오류");
+        }
+    };
     // 맞춤액자 이미지 제거
     const handleDeleteCustomImage = async () => {
         if (!order?.items?.[0]) return;
 
-        if (!window.confirm("고객 업로드 이미지를 서버에서 삭제할까요? (삭제 후 복구 불가")) return;
+        if (!window.confirm("맞춤액자 고해상 원본 이미지를 서버에서 삭제할까요? (복구 불가)")) return;
 
         try {
             const res = await fetch(`${API}/admin/order/delete-custom-image`, {
@@ -577,7 +617,7 @@ const Order_Detail = () => {
 
             const data = await res.json();
             if (data.success) {
-                toast.success("고객 업로드 이미지가 삭제되었습니다.");
+                toast.success("고해상 원본 이미지가 삭제되었습니다.");
                 reload();
             } else {
                 toast.error("삭제 실패: " + (data.message || ""));
@@ -665,7 +705,16 @@ const Order_Detail = () => {
                                 className="px-2 py-1 text-[11px] font-medium border bg-gray-700 text-white rounded-xl hover:bg-gray-800 transition"
                                 onClick={handleDeleteCustomImage}
                             >
-                                이미지 제거
+                                원본 삭제
+                            </button>
+                        )}
+
+                        {order.items[0].category === 'customFrames' && order.items[0]?.thumbnailPreview && (
+                            <button
+                                className="px-2 py-1 text-[11px] font-medium border bg-amber-700 text-white rounded-xl hover:bg-amber-800 transition"
+                                onClick={handleDeleteCustomThumbnail}
+                            >
+                                썸네일 삭제
                             </button>
                         )}
 
@@ -788,10 +837,6 @@ const Order_Detail = () => {
                             <div className="print-label text-black font-bold">
                                 {order.items[0].title}
                             </div>
-                            <div>
-                                <span className="print-label">사이즈:</span>
-                                {convertInchToCm(order.items[0].size)}
-                            </div>
 
                             <div>
                                 <span className="print-label">작가:</span>
@@ -801,6 +846,11 @@ const Order_Detail = () => {
                             <div>
                                 <span className="print-label">상품금액:</span>
                                 {(order.items[0].price * order.items[0].quantity).toLocaleString()}원
+                            </div>
+
+                            <div>
+                                <span className="print-label">사이즈:</span>
+                                {convertInchToCm(order.items[0].size)}
                             </div>            
 
                             {/* {order.items[0].category === 'customFrames' && hasCustomUploadImage && (

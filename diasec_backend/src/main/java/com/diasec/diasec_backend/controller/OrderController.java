@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -55,48 +56,22 @@ public class OrderController {
     private final ImageUtil imageUtil;
     private final PasswordEncoder passwordEncoder;
     private final OrderMapper orderMapper;
+    private final ObjectMapper objectMapper;
 
     // OrderForm 주문 저장    
-    @PostMapping("/insert")
-    public ResponseEntity<?> insertOrder(@RequestBody OrderVo ordervo) {
+    @PostMapping(value = "/insert", consumes = "multipart/form-data")
+    public ResponseEntity<?> insertOrder(
+        @RequestPart("orderJson") String orderJson,
+        @RequestPart(value = "customFrameFiles", required = false) List<MultipartFile> customFrameFiles,
+        @RequestPart(value = "customFramePreviewFiles", required = false) List<MultipartFile> customFramePreviewFiles
+    ) {
         try {
+            OrderVo ordervo = objectMapper.readValue(orderJson, OrderVo.class);
+
             // 주문 저장 전에 상품 판매량 1 올리기
-            for (int i = 0; i < ordervo.getItems().size(); i++) {
-                productService.updateProductSales(ordervo.getItems().get(i).getPid());
-            }
-
-            // 주문중 하나라도 customFrames인 항목이 있는지 확인
-            boolean hasCustomFrames = ordervo.getItems().stream()
-                .anyMatch(item -> "customFrames".equals(item.getCategory()));
-
-            if (hasCustomFrames) {
-                for (OrderItemsVo item : ordervo.getItems()) {
-                    // 맞춤액자 만 for문을 돌림
-                    if ("customFrames".equals(item.getCategory())) {
-                        // 클라이언트에서 넘어온 base64 파일 가져옴
-                        String base64 = item.getThumbnail();
-
-                        // 넘어온 파일 유효성 검사
-                        if (base64 != null && base64.startsWith("data:image")) {
-                            String[] parts = base64.split(",");
-                            String metadata = parts[0];
-                            String base64Data = parts[1];
-
-                            String extension = "jpg";
-                            // 이미지 확장자를 추출해서 png라면 png로 저장
-                            if (metadata.contains("png")) {
-                                extension = "png";
-                            } else if (metadata.contains("jpeg")) {
-                                extension = "jpg";
-                            }
-
-                            // ImageUtil 메서드 사용하여 저장
-                            String imageUrl = imageUtil.saveBase64Image(base64Data, extension, "customFrames");
-                            item.setThumbnail(imageUrl);
-                        }
-                    }
-                }
-            }
+            // for (int i = 0; i < ordervo.getItems().size(); i++) {
+            //     productService.updateProductSales(ordervo.getItems().get(i).getPid());
+            // }
 
             // 비회원 비밀번호 암호화
             if (ordervo.getGuestPassword() != null && !ordervo.getGuestPassword().isBlank()) {
@@ -104,7 +79,7 @@ public class OrderController {
                 ordervo.setGuestPassword(encodedPw);
             }
 
-            orderService.insertOrder(ordervo);
+            orderService.insertOrder(ordervo, customFrameFiles, customFramePreviewFiles);
             boolean isBankTransfer = "무통장입금".equals(ordervo.getPaymentMethod());
             if (!isBankTransfer) {
                 orderService.sendAdminOrderPaidSms(ordervo.getOid(), "즉시결제");
@@ -254,14 +229,25 @@ public class OrderController {
     public ResponseEntity<?> deleteOrder(@RequestBody Map<String, Object> body) {
         try {
             Long oid = Long.parseLong(body.get("oid").toString());
-            List<Map<String, Object>> items = (List<Map<String, Object>>) body.get("items");
+            // 관리자 상세는 detail/{itemId} 조회 시 한 줄만 items에 넣으므로,
+            // 요청 body의 items만 믿으면 같은 oid의 다른 맞춤액자 이미지가 디스크에 남음 → DB에서 oid 기준 전체 품목으로 삭제
+            OrderVo existing = orderService.selectOrderByOid(oid);
+            if (existing == null || existing.getItems() == null || existing.getItems().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("success", false, "message", "주문을 찾을 수 없습니다."));
+            }
 
-            for (Map<String, Object> item : items) {
-                String category = (String) item.get("category");
-                String thumbnail = (String) item.get("thumbnail");
+            for (OrderItemsVo item : existing.getItems()) {
+                if (!"customFrames".equals(item.getCategory())) {
+                    continue;
+                }
+                String thumbnail = item.getThumbnail();
+                String thumbnailPreview = item.getThumbnailPreview();
 
-                if ("customFrames".equals(category) && thumbnail != null && !thumbnail.isBlank()) {
+                if (thumbnail != null && !thumbnail.isBlank()) {
                     imageUtil.deleteImage(thumbnail);
+                }
+                if (thumbnailPreview != null && !thumbnailPreview.isBlank()) {
+                    imageUtil.deleteImage(thumbnailPreview);
                 }
             }
 

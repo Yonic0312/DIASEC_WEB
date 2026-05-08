@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useState, useRef, useMemo } from 'react';
 import { useLocation, useNavigate } from "react-router-dom";
-import { Helmet } from 'react-helmet-async';
 import axios from 'axios';
 import { X, Search } from 'lucide-react';
 import { getMinFrameConfigByRatio } from '../../utils/customFramePrice';
@@ -37,39 +36,6 @@ function parseListScrollPayload(raw) {
         /* ignore */
     }
     return null;
-}
-
-const SITE_ORIGIN = 'https://diasec.co.kr';
-const DEFAULT_OG_IMAGE = `${SITE_ORIGIN}/icon.png`;
-
-function getMainItemsMetaByType(type) {
-    switch (type) {
-        case 'masterPiece':
-            return {
-                title: '명화 액자 | 디아섹코리아',
-                desc: '고해상 명화 디아섹 액자 제작',
-            };
-        case 'koreanPainting':
-            return {
-                title: '동양화 액자 | 디아섹코리아',
-                desc: '전통 동양화 디아섹 액자 제작',
-            };
-        case 'photoIllustration':
-            return {
-                title: '사진 / 일러스트 액자 | 디아섹코리아',
-                desc: '사진 / 일러스트 디아섹 액자 제작',
-            };
-        case 'fengShui':
-            return {
-                title: '풍수 그림 액자 | 디아섹코리아',
-                desc: '풍수 인테리어 디아섹 액자',
-            };
-        default:
-            return {
-                title: '디아섹코리아',
-                desc: '프리미엄 액자 제작 쇼핑몰',
-            };
-    }
 }
 
 const Main_Items = () => {
@@ -403,23 +369,6 @@ const Main_Items = () => {
             ? filteredAuthorProducts
             : (["masterPiece", "koreanPainting"].includes(type) ? [] : filteredHomeProducts);
     }, [author, type, filteredAuthorProducts, filteredHomeProducts]);
-
-    const mainItemsSeo = useMemo(() => {
-        const base = getMainItemsMetaByType(type);
-        let title = base.title;
-        let desc = base.desc;
-        if (author) {
-            const name = decodeURIComponent(author);
-            title = `${name} | ${base.title}`;
-            desc = `${name} 작품. ${base.desc}`;
-        }
-        const origin =
-            typeof window !== 'undefined' && window.location?.origin
-                ? window.location.origin
-                : SITE_ORIGIN;
-        const canonical = `${origin}${location.pathname}${location.search}`;
-        return { title, desc, canonical };
-    }, [type, author, location.pathname, location.search]);
 
     useEffect(() => {
         setTitleSearch('');
@@ -861,17 +810,6 @@ const Main_Items = () => {
 
     return (
         <div>
-            <Helmet>
-                <title>{mainItemsSeo.title}</title>
-                <meta name="description" content={mainItemsSeo.desc} />
-                <meta property="og:type" content="website" />
-                <meta property="og:title" content={mainItemsSeo.title} />
-                <meta property="og:description" content={mainItemsSeo.desc} />
-                <meta property="og:image" content={DEFAULT_OG_IMAGE} />
-                <meta property="og:url" content={mainItemsSeo.canonical} />
-                <meta property="og:locale" content="ko_KR" />
-                <link rel="canonical" href={mainItemsSeo.canonical} />
-            </Helmet>
             {/* [공통] 페이지 제목 */}
             <div className="flex justify-center mt-[40px] text-[#cfab88]">
                 <span className="md:text-3xl text-[clamp(24px,3.911vw,30px)] font-bold">{selectedLabel ?  selectedLabel : title}</span>

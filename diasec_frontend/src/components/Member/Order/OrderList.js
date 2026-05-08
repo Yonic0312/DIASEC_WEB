@@ -391,7 +391,7 @@ const OrderList = () => {
                                         <img 
                                             src={
                                                 item.category === 'customFrames' 
-                                                    ? item.thumbnail || thumbCustom
+                                                    ? item.thumbnailPreview || item.thumbnail || thumbCustom
                                                     : item.thumbnail
                                             } 
                                             alt={item.title} 

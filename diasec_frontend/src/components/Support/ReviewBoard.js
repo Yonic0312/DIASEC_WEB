@@ -32,8 +32,9 @@ const ReviewBoard = () => {
 
     // 리뷰 작성
     const handleWriteReview = () => {
-        if (!member) {
-            toast.warn('로그인 후 이용해주세요.');
+        if (!member?.id) {
+            toast.info('비회원은 주문조회에서 배송 완료 주문 확인 후 리뷰를 작성할 수 있습니다.');
+            navigate('/guestOrderSearch');
             return;
         }
         navigate('/reviewWrite');

@@ -27,7 +27,7 @@ const ProductDetail = ({ pid }) => {
     const BEFORE_AFTER_DATA = [
         { title: '피부 보정', before: custom1, after: custom2},
         { title: '치아 보정', before: custom3, after: custom4},
-        { title: '라인 보정', before: custom5, after: custom6},
+        { title: '체형 보정', before: custom5, after: custom6},
         { title: '색감 보정', before: custom7, after: custom8},
         { title: '배경 정리', before: custom9, after: custom10},
         { title: '고해상도 업스케일', before: custom11, after: custom12},
@@ -53,33 +53,39 @@ const ProductDetail = ({ pid }) => {
             {/* 보정 */}
             {isCustomFrame && (
                 <div className="mb-[200px]">
-                    <div className="text-center mb-3">
+                    <div className="text-center mb-[6px]">
                         <h2 className='
-                            md:text-[30px] sm:text-[clamp(24px,3.911vw,30px)] text-[18px]
-                            font-bold text-gray-800'>보정 서비스 미리보기</h2>
+                            lg:text-[22px] md:text-[clamp(20px,2.15vw,22px)] sm:text-[clamp(17px,2.607vw,20px)] text-[17px]
+                            font-bold text-gray-500 opacity-70'>보정 서비스 미리보기</h2>
                     </div>
                     <div>
                         {/* 보정 비교 */}
                         {/* xl:w-[550px] lg:w-[clamp(380px,33.62vw,430px)] md:w-[clamp(250px,32.257vw,330px)] sm:w-[clamp(230px,32.59vw,250px)]  */}
                         <div className='
-                            max-w-[380px] border
-                            aspect-[1024/1366] mx-auto bg-opacity-60 rounded-lg mt-5
-                            xl:p-6 lg:p-5 md:p-4 p-2
+                            max-w-[530px] border
+                            aspect-[1024/1366] mx-auto bg-opacity-60 rounded-lg
+                            pt-0
+                            xl:px-6 xl:py-4
+                            lg:px-5 lg:py-3
+                            px-4 py-2
                         '>
                             <h3 className='
                                 text-[clamp(16px,1.759vw,18px)] lg:text-[18px]
-                                font-semibold text-center  text-[a67a3e]'>{current.title}</h3>
+                                font-semibold text-center  text-[a67a3e] mb-2'
+                            >
+                                {current.title}
+                            </h3>
                             
                             <div className='relative w-full flex justify-center items-center'>
                                 <img src={
                                     showAfter ? current.after : current.before}
                                     alt="보정 비교" 
-                                    className='rounded-xl transition duration-500 shadow-lg max-w-full aspect-[1024/1366] object-contain'
+                                    className='rounded-xl transition duration-500 max-w-full aspect-[1024/1366] object-contain'
                                 />
                                 <div className='
                                     text-[clamp(14px,1.9544vw,15px)] md:text-[clamp(15px,1.564vw,16px)] lg:text-[16px]
-                                    
-                                    absolute bottom-2 flex gap-3 px-4 py-2'> {/* transform -translate-x-1/2 너비의 절반만큼 왼쪽으로 간다 */}
+                                    absolute bottom-2 flex gap-3 px-4 py-2'
+                                > {/* transform -translate-x-1/2 너비의 절반만큼 왼쪽으로 간다 */}
                                     <button
                                         className={`
                                             px-4 py-1 rounded-full font-semibold transition ${
@@ -103,7 +109,7 @@ const ProductDetail = ({ pid }) => {
                             </div>
 
                             {/* 페이지 네이션 */}
-                            <div className="mt-6 flex justify-center gap-2">
+                            <div className="mt-3 flex justify-center gap-2">
                                 {BEFORE_AFTER_DATA.map((_, idx) => (
                                     <button
                                         key={idx}
@@ -123,7 +129,7 @@ const ProductDetail = ({ pid }) => {
                             <span
                                 className="
                                     flex flex-col justify-center items-center
-                                    mt-4
+                                    mt-3
                                     md:text-sm text-[clamp(11px,1.8252vw,14px)]
                                     font-medium tracking-wide
                                     text-gray-600
@@ -165,18 +171,20 @@ const ProductDetail = ({ pid }) => {
                 </div>
             )}
             {/* /보정 */}
-            
+
             {/* 상품별 상세 이미지 */}
-            {images && images.length > 0 ? (
-                images.map((url, idx) => (
-                    <img key={idx}
-                        src={url}
-                        alt={`상세 이미지 ${idx + 1}`}
-                        className="w-full max-w-[800px] rounded"
-                    />
-                ))
-            ) : (
-                <p className="text-gray-400 text-sm mt-[200px]">등록된 상세 이미지가 없습니다.</p>
+            {!isCustomFrame && ( 
+                (images && images.length > 0) ? (
+                    images.map((url, idx) => (
+                        <img key={idx}
+                            src={url}
+                            alt={`상세 이미지 ${idx + 1}`}
+                            className="w-full max-w-[800px] rounded"
+                        />
+                    ))
+                ) : (
+                    <p className="text-gray-400 text-sm mt-[200px]">등록된 상세 이미지가 없습니다.</p>
+                )
             )}
             {/* 상품별 상세 이미지 */}
 

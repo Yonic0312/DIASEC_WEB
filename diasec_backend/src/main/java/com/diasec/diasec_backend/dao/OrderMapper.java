@@ -106,4 +106,9 @@ public interface OrderMapper {
 
     List<OrderItemFileVo> selectRetouchPreviewToDelete();
     int markRetouchPreviewDeleted(@Param("fileId") Long fileId);
+
+    /** 배송완료 후 30일 지난 맞춤액자 썸네일 정리 대상 */
+    List<OrderItemsVo> selectCustomFrameStalePreviewItems();
+
+    int clearThumbnailPreview(@Param("itemId") Long itemId);
 }

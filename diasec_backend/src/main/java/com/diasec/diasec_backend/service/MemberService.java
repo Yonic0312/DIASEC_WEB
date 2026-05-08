@@ -1,5 +1,8 @@
 package com.diasec.diasec_backend.service;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -16,6 +19,7 @@ import com.diasec.diasec_backend.dao.MemberMapper;
 import com.diasec.diasec_backend.dao.OrderMapper;
 import com.diasec.diasec_backend.dao.WishlistMapper;
 import com.diasec.diasec_backend.util.ImageUtil;
+import com.diasec.diasec_backend.vo.CreditVo;
 import com.diasec.diasec_backend.vo.MemberVo;
 
 import jakarta.transaction.Transactional;
@@ -35,6 +39,7 @@ public class MemberService {
     private final ImageUtil imageUtil;
     private final BCryptPasswordEncoder passwordEncoder;    
     private final MailService mailService;
+    private final CreditService creditService;
 
     public void registerMember(MemberVo member) {
         memberMapper.registerMember(member);
@@ -207,6 +212,7 @@ public class MemberService {
         return memberMapper.selectWebMemberByEmail(email);
     }
 
+    @Transactional
     public void createSocialMember(String email, String nickname, String provider, String providerUid) {
         MemberVo vo = new MemberVo();
         vo.setEmail(email);
@@ -228,15 +234,33 @@ public class MemberService {
         if ("naver".equals(provider)) vo.setNaver_uid(providerUid);
 
         memberMapper.insertSocialMember(vo);
+
+        CreditVo welcomeCredit = new CreditVo();
+        welcomeCredit.setId(vo.getId());
+        welcomeCredit.setType("적립");
+        welcomeCredit.setAmount(5000);
+        welcomeCredit.setDescription("회원가입 축하 적립");
+        creditService.insertCreditHistory(welcomeCredit);
     }
 
     private String generateSocialId(String provider, String providerUid) {
-        return provider + "_" + providerUid;
+        // n + 15자리 해시 = 총 16자리
+        String prefix = "kakao".equals(provider) ? "k" : "n";
+        String source = provider + ":" + providerUid;
+
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] digest = md.digest(source.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder();
+            for (byte b : digest) {
+                hex.append(String.format("%02x", b));
+            }
+            return prefix + hex.substring(0, 15); // 총 16자
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("social id 생성 실패", e);
+        }
     }
 
-    // public MemberVo selectMemberByEmail(String email) {
-    //     return memberMapper.selectMemberByEmail(email);
-    // }
 
     public void linkKako(String id, String kakaoUid) {
         memberMapper.updateKakaoUid(id, kakaoUid);

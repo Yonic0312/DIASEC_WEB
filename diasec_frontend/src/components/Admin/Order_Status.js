@@ -102,7 +102,7 @@ const Order_Status = () => {
     const SHOULD_DELETE_CLAIM_FILES_STATUS = new Set(['교환완료', '환불완료']);
 
     // 진행상태 업데이트
-    const handleStatusChange = async (itemId, newStatus, id, usedCredit, oid, hasClaimFiles) => {
+    const handleStatusChange = async (itemId, newStatus, id, usedCredit, oid, hasClaimFiles, category) => {
         const ok = window.confirm(`주문 상태를 "${newStatus}"(으)로 변경할까요?`);
         if (!ok) return;
 
@@ -115,6 +115,15 @@ const Order_Status = () => {
                 `(삭제 후 복구 불가)\n진행할까요?`
             );
             if (!ok2) return;
+        }
+
+        if (newStatus === '배송완료' && category === 'customFrames') {
+            const ok3 = window.confirm(
+                '맞춤액자 고해상 원본 이미지는 서버에서 삭제됩니다. (복구 불가)\n' +
+                '150px 썸네일은 배송완료 시점으로부터 최대 30일 보관 후 자동 삭제됩니다.\n' +
+                '계속할까요?'
+            );
+            if (!ok3) return;
         }
 
         try {
@@ -141,21 +150,23 @@ const Order_Status = () => {
         if (data.refundedAmount > 0) {
             toast.success(`적립금 반환 (+${data.refundedAmount.toLocaleString()}원)`);
         }
-            fetchOrders();
+        if (data.deletedCustomFrameOriginal > 0) {
+            toast.success('맞춤액자 원본 이미지가 삭제되었습니다.');
+        }
+        fetchOrders();
         } catch (err) {
             console.error("상태 변경 요청 실패", err);
             toast.error("서버 오류");
         }
     };
 
-    // 진행 상태 폰트색
+    // 진행 상태 폰트색 (처리필요/진행중/완료 그룹 기준)
     const statusBadgeColor = (status) => {
-        if (status.includes("반품신청") || status.includes("교환신청")) return 'text-red-500';
-        if (status.includes("완료")) return 'text-green-600';
-        if (status.includes("배송") || status.includes("처리중")) return 'text-blue-500';
-        if (status === '입금대기') return 'text-yellow-600';
+        if (STATUS_GROUPS.처리필요.includes(status)) return 'text-yellow-600';
+        if (STATUS_GROUPS.진행중.includes(status)) return 'text-blue-600';
+        if (STATUS_GROUPS.완료.includes(status)) return 'text-green-600';
         return 'text-gray-600';
-    }
+    };
 
     // 카테고리 매핑
     const categoryMap = {
@@ -370,17 +381,17 @@ const Order_Status = () => {
             ) : (
                 <table className="w-full text-sm border-collapse">
                     <thead className="bg-gray-100 border-b">
-                        <tr>
-                            <th className="w-[8%] p-3 text-left font-medium text-gray-700">주문번호</th>
-                            <th className="w-[10%] p-3 text-left font-medium text-gray-700">주문일자</th>
-                            <th className="w-[10%] p-3 text-left font-medium text-gray-700">회원ID</th>
-                            <th className="w-[11%] p-3 text-left font-medium text-gray-700">카테고리</th>
-                            <th className="w-[22%] p-3 text-left font-medium text-gray-700">상품명</th>
+                        <tr className="text-center">
+                            <th className="w-[10.2%] p-3 font-medium text-gray-700">주문일자</th>
+                            <th className="w-[8%] p-3 font-medium text-gray-700">주문번호</th>
+                            <th className="w-[10.5%] p-3 font-medium text-gray-700">회원ID</th>
+                            <th className="w-[10%] p-3 font-medium text-gray-700">카테고리</th>
+                            <th className="w-[30%] p-3 font-medium text-gray-700">상품명</th>
                             <th className="w-[5%] p-3 text-center font-medium text-gray-700">수량</th>
-                            <th className="w-[10%] p-3 text-center font-medium text-gray-700">단가</th>
-                            <th className="w-[10%] p-3 text-center font-medium text-gray-700">총금액</th>
-                            <th className="w-[8.5%] p-3 text-center font-medium text-gray-700">상태</th>
-                            <th className="w-[5.5%] p-3 text-center font-medium text-gray-700">변경</th>
+                            {/* <th className="w-[10%] p-3 text-center font-medium text-gray-700">단가</th> */}
+                            <th className="w-[12%] p-3 font-medium text-gray-700">총금액</th>
+                            <th className="w-[8.8%] p-3 font-medium text-gray-700">상태</th>
+                            <th className="w-[5.5%] p-3 font-medium text-gray-700">변경</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -392,7 +403,7 @@ const Order_Status = () => {
                                 
                                 return (
                                     <tr key={idx} 
-                                        className="hover:bg-gray-100 border-b cursor-pointer"
+                                        className="hover:bg-gray-100 border-b cursor-pointer text-center"
                                         onClick={() => {
                                             const qs = searchParams.toString();
                                             navigate(`/admin/order_Detail/${item.itemId}?${qs}`, { 
@@ -400,22 +411,22 @@ const Order_Status = () => {
                                             });
                                         }}
                                     >
-                                        <td className="p-3">{isSameOid ? '' : item.oid}</td>
                                         <td className="p-3">{isSameOid ? '' : item.createdAt?.slice(0, 10)}</td>
+                                        <td className="p-3">{isSameOid ? '' : item.oid}</td>
                                         <td className="p-3">{isSameOid ? '' : item.id == '' ? '비회원' : item.id}</td>
                                         <td className="p-3">{categoryMap[item.category] || item.category}</td>
-                                        <td className={`p-3 text-black`}>{item.title}</td>
-                                        <td className="p-3 text-center">{item.quantity}</td>
-                                        <td className="p-3 text-center">{item.price?.toLocaleString()}원</td>
-                                        <td className="p-3 text-center">{(item.price * item.quantity).toLocaleString()}원</td>
-                                        <td className={`p-3 text-center font-semibold ${statusBadgeColor(item.orderStatus)}`}>
+                                        <td className={`p-3 text-black text-left`}>{item.title}</td>
+                                        <td className="p-3">{item.quantity}</td>
+                                        {/* <td className="p-3 text-center">{item.price?.toLocaleString()}원</td> */}
+                                        <td className="p-3">{(item.price * item.quantity).toLocaleString()}원</td>
+                                        <td className={`p-3 font-semibold ${statusBadgeColor(item.orderStatus)}`}>
                                             {item.orderStatus}
                                         </td>
-                                        <td className="p-3 text-center">
+                                        <td className="p-3">
                                             <select
                                                 value={item.orderStatus}
                                                 onClick={(e) => e.stopPropagation()} 
-                                                onChange={(e) => handleStatusChange(item.itemId, e.target.value, item.id, item.usedCredit, item.oid)}
+                                                onChange={(e) => handleStatusChange(item.itemId, e.target.value, item.id, item.usedCredit, item.oid, undefined, item.category)}
                                                 className="border rounded px-2 py-1 text-sm">
                                             {statusOptions.map(status => (
                                                 <option key={status} value={status}>{status}</option>

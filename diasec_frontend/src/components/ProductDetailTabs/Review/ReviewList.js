@@ -1,7 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import images_icon from '../../../assets/images_icon.png'
-import ImageModal from '../Modal/ImageModal';
 import { MemberContext } from '../../../context/MemberContext';
 import { toast } from 'react-toastify';
 import axios from 'axios';
@@ -11,7 +9,8 @@ const ReviewList = ({ pid }) => {
     const { member } = useContext(MemberContext);
     const navigate = useNavigate();
     const [reviews, setReviews] = useState([]);
-    const [expandedMap, setExpandedMap] = useState({});
+    const [selectedReview, setSelectedReview] = useState(null);
+    const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
     useEffect(() => {
         // fetch(`${API}/review/list?pid=${pid}`) 상품([pid]별 리뷰 * 추후 사용)
@@ -24,16 +23,12 @@ const ReviewList = ({ pid }) => {
 
     // 리뷰 작성
     const handleWriteReview = () => {
-        if (!member) {
-            toast.warn("로그인 후 이용해주세요.");
+        if (!member?.id) {
+            toast.info('비회원은 주문조회에서 배송 완료 주문 확인 후 리뷰를 작성할 수 있습니다.');
+            navigate('/guestOrderSearch');
             return;
         }
         navigate('/reviewWrite');
-    };
-
-    // 후기 열기
-    const toggleExpanded = (rid) => {
-        setExpandedMap(prev => ({ ...prev, [rid]: !prev[rid] }));
     };
 
     // 상단 통계 레이아웃 추가 (별점)
@@ -55,10 +50,6 @@ const ReviewList = ({ pid }) => {
         return id.slice(0, 2) + '*'.repeat(id.length - 3) + id.slice(-1);
     };
     
-    // 리뷰 이미지 모달창 띄우기
-    const [modalImages, setModalImages] = useState([]);
-    const [modalIndex, setModalIndex] = useState(0);
-
     // 리뷰 페이징
     const [currentPage, setCurrentPage] = useState(1); // 현재 페이지
     const reviewsPerPage = 5; // 한 페이지에 보여줄 리뷰 수
@@ -132,81 +123,164 @@ const ReviewList = ({ pid }) => {
             </div>
 
             <div>
-                {currentReviews.map(review => (
-                    <div key={review.rid} className="border-b pb-6">
-                        
-                        {/* 기본 정보 영역 */}
-                        <div className="flex justify-between items-center mb-1">
-                            <div className='md:text-xl text-[clamp(17px,2.606vw,20px)] font-semibold text-gray-900'>{review.title}</div>
-                            <span className='md:text-[18px] text-[clamp(14px,2.346vw,18px)] text-gray-400'>{review.createdAt?.slice(0, 10)}</span>
-                        </div>
+                {/* 🔶 일반 리스트 */}
+                <ul className='divide-y border-y'>
+                    {currentReviews.map((review, i) => (
+                        <li
+                            key={i}
+                            className='flex gap-4 py-6 cursor-pointer'
+                            onClick={() => setSelectedReview(review)}
+                        >
+                            <div className='flex-1'>
+                                <div className="
+                                    md:text-sm text-[clamp(12px,1.825vw,14px)]
+                                    flex items-center justify-between text-gray-400">
+                                    <span>{review.id?.slice(0, 2)}***님</span>
+                                    <span>{review.createdAt?.slice(2, 10).replaceAll('-', '.')}</span>
+                                </div>
+                                <div className="
+                                    md:text-[16px] text-[clamp(12px,2.085vw,16px)]
+                                    font-semibold text-gray-700">
+                                    <span className="text-orange-400">
+                                        {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
+                                    </span>
+                                </div>
 
-                        <div className="flex justify-between items-center text-sm text-gray-600 mb-2">
-                            <div 
-                                className="
-                                    text-yellow-400 
-                                    md:text-xl text-[clamp(16px,2.607vw,20px)]">
-                                {"★".repeat(review.rating)}{"☆".repeat(5 - review.rating)}
-                            </div>
-                            <div className="text-sm text-gray-400 italic">
-                                {maskedId(review.id)} 님의 리뷰
-                            </div>
-                        </div>
+                                <div className='text-[14px] md:text-[16px] font-semibold'>
+                                    {review.title}{' '}
+                                </div>
 
-                        {/* 본문 + 이미지 토글 포함 */}
-                        {expandedMap[review.rid] && (
-                            <>
-                                {/* 본문 */}
-                                <p className="
-                                    md:text-[20px] text-[clamp(18px,2.606vw,20px)] 
-                                    border-t-[1px] pt-2 text-gray-800 mb-4 whitespace-pre-line">
-                                    {review.content}
+                                <div className='
+                                    text-gray-500 mt-[2px]
+                                    text-[12px] md:text-[14px]
+                                '>
+                                    {review.content.length > 50
+                                        ? `${review.content.slice(0, 50)}...`
+                                        : review.content}
+                                </div>
+
+                                {/* 이미지 */}
+                                <div className="flex overflow-x-auto mt-2 gap-2">
+                                    {review.images?.map((img, idx) => (
+                                        <img
+                                            key={idx}
+                                            src={img}
+                                            alt={`리뷰 이미지 ${idx}`}
+                                            className="
+                                                md:w-28 w-[clamp(48px,14.6vw,112px)]
+                                                md:h-28 h-[clamp(48px,14.6vw,112px)]
+                                                object-cover rounded border"
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+
+                {/* 리뷰 선택 모달창 */}
+                {selectedReview && (
+                    <div
+                        className="fixed inset-0 bg-black/55 backdrop-blur-[2px] flex items-center justify-center px-4 py-6 z-[10000]"
+                        onClick={() => {
+                            setSelectedReview(null);
+                            setSelectedImageIndex(0);
+                        }}
+                    >
+                        <div
+                            role="dialog"
+                            aria-modal="true"
+                            className="
+                                relative flex flex-col w-full max-w-[620px]
+                                max-h-[88vh] overflow-hidden
+                                rounded-2xl bg-white shadow-2xl
+                                border border-gray-100
+                            "
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* 헤더 */}
+                            <div className="flex shrink-0 items-center justify-between px-3 md:px-2 md:py-2 bg-white/95 backdrop-blur border-gray-100">
+                                <p className="text-[14px] md:text-[16px] font-semibold text-gray-900">
+                                    리뷰 상세보기
                                 </p>
+                                <button
+                                    aria-label="모달 닫기"
+                                    className="w-8 h-8 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition"
+                                    onClick={() => {
+                                        setSelectedReview(null);
+                                        setSelectedImageIndex(0);
+                                    }}
+                                >
+                                    ✕
+                                </button>
+                            </div>
 
-                                {review.images?.length > 0 && (
-                                    <div>
-                                        <div className="flex gap-2 overflow-x-auto mb-3">
-                                            {review.images.map((imgUrl, idx) => (
-                                                <img key={idx} 
-                                                    src={imgUrl} 
-                                                    alt="리뷰 이미지" 
-                                                    className="
-                                                        md:w-24 w-[clamp(64px,12.516vw,96px)]
-                                                        md:h-24 h-[clamp(64px,12.516vw,96px)]
-                                                        rounded object-cover border"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation(); // 리뷰 펼침 방지
-                                                        setModalImages(review.images); // 클릭한 이미지 저장
-                                                        setModalIndex(idx);
-                                                    }}
-                                                />
-                                            ))}
-                                        </div>
+                            <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3 md:px-5 md:pb-5">
+                                {/* 메인 이미지 */}
+                                <div className="w-full aspect-[4/3] rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden">
+                                    <img
+                                        src={selectedReview.images?.[selectedImageIndex]}
+                                        alt={`상세 이미지 ${selectedImageIndex + 1}`}
+                                        className="max-w-full max-h-full object-contain"
+                                    />
+                                </div>
+
+                                {/* 썸네일 */}
+                                <div className="mt-2 md:mt-3 flex flex-wrap justify-center gap-2">
+                                    {selectedReview.images?.map((img, idx) => (
+                                        <button
+                                            key={idx}
+                                            type="button"
+                                            className={`
+                                                w-[58px] h-[58px] rounded-lg overflow-hidden border transition
+                                                ${idx === selectedImageIndex
+                                                    ? "border-gray-900 ring-2 ring-gray-900/20"
+                                                    : "border-gray-200 hover:border-gray-400"}
+                                            `}
+                                            onClick={() => setSelectedImageIndex(idx)}
+                                        >
+                                            <img
+                                                src={img}
+                                                alt={`썸네일 ${idx + 1}`}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* 텍스트 정보 */}
+                                <div className="mt-5">
+                                    <h2 className="text-[18px] md:text-[20px] font-bold text-gray-900 leading-snug">
+                                        {selectedReview.title}
+                                    </h2>
+
+                                    <div className="flex flex-col items-start">
+                                        <span className="
+                                            inline-flex items-center rounded-full text-orange-400 py-1 mb-1
+                                            text-[12px] md:text-[14px] font-semibold"
+                                        >
+                                            {'★'.repeat(selectedReview.rating)}{'☆'.repeat(5 - selectedReview.rating)}
+                                        </span>
                                     </div>
-                                )}
-                            </>
-                        )}
 
-                        {/* 토글 버튼 */}
-                        {(review.content || review.images?.length > 0) && (
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleExpanded(review.rid);
-                                }}
-                                className="text-base text-gray-600 hover:text-black font-medium transition"
-                            >
-                                {expandedMap[review.rid] ? '▲ 리뷰 닫기' : ( 
-                                    <> 
-                                        ▼ 리뷰 보기 
-                                        {review.images?.length > 0 && (
-                                            <img src={images_icon} alt="이미지 포함 아이콘" className="inline w-[13px] h-[13px] ml-1" /> )}</>)}
-                            </button>
-                        )}
+                                    <p className=" text-[14px] md:text-[16px] text-gray-700 leading-relaxed whitespace-pre-line">
+                                        {selectedReview.content}
+                                    </p>
+
+                                    <div className="mt-4 pt-3 border-t border-gray-100 text-[12px] text-gray-500 flex justify-between">
+                                        작성자: {selectedReview.id?.slice(0, 2)}***
+                                        <span className="text-[12px] text-gray-500">
+                                            {selectedReview.createdAt?.slice(0, 10)}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                ))}
+                )}
+                {/* 리뷰 선택 모달창 */}
+
                 {/* 페이징 버튼 */}
-                {/* const totalPages = Math.max(1, Math.ceil(reviews.length / reviewsPerPage)); */}
                 <div className="flex justify-center gap-2 mt-4 md:mt-8 text-sm">
                     {(() => {
                         const totalPages = Math.max(1, Math.ceil(reviews.length / 5)); // 10개씩
@@ -283,19 +357,7 @@ const ReviewList = ({ pid }) => {
                         )
                     })()}
                 </div>
-            </div>                        
-            {/* 모달창으로 이미지 띄우기 */}
-            {modalImages.length > 0 && (
-                <ImageModal 
-                    images={modalImages}
-                    currentIndex={modalIndex} 
-                    onClose={() => {
-                        setModalImages([]);
-                        setModalIndex(0);
-                    }}
-                    onSelect={(idx) => setModalIndex(idx)}
-                />      
-            )}
+            </div>
         </div>
     );
 };

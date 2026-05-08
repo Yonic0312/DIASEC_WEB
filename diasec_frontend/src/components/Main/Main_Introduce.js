@@ -57,11 +57,11 @@ const Main_Introduce = () => {
                 {/* 디아섹이란? */}
                 <div className="flex flex-col items-center">
                     <div className="flex items-center justify-center w-full gap-4 mb-10">
-                        <div className="flex-1 border-t-2 border-[#D0AC88]"></div>
-                        <span className="lg:text-[36px] text-[clamp(26px,5.865vw,60px)] font-bold text-[#D0AC88]">
+                        <div className="flex-1 border-t-[1px] border-[#D0AC88]"></div>
+                        <span className="lg:text-[36px] text-[clamp(26px,3.519vw,36px)] font-bold text-[#D0AC88]">
                             디아섹이란?
                         </span>
-                        <div className="flex-1 border-t-2 border-[#D0AC88]"></div>
+                        <div className="flex-1 border-t-[1px] border-[#D0AC88]"></div>
                     </div>
                     <div className="w-full max-w-[850px] flex flex-col justify-center md:flex-row md:items-stretch px-4 gap-8 md:gap-10">
                         <div className="w-full md:w-[30%] shrink-0 overflow-hidden rounded-xl bg-gray-100 shadow-sm ring-1 ring-black/5">
@@ -75,11 +75,12 @@ const Main_Introduce = () => {
                             <h3 className="
                                 text-[15px] md:text-[24px]
                                 font-bold text-gray-900">
-                                이미지를 더 선명하게, 오래도록 남기는 액자 방식
+                                이미지를 더 선명하게, 오래도록 보존하는 액자 방식
                             </h3>
                             <span className=" text-[13px] md:text-[19px] leading-relaxed text-gray-600">
-                                디아섹(Diasec)은 이미지를 투명 아크릴에 밀착해 제작하는 액자입니다.<br />
-                                일반 액자와 달리 전면과 이미지 사이에 공간이 없어 하나의 이미지처럼 선명하게 표현되며, 깊이감 있는 시각적 효과를 제공합니다.
+                                디아섹(Diasec)은 이미지를 투명 아크릴과 복합판넬 사이에 진공압축을 하여
+                                일체형으로 제작되는 액자입니다.
+                                이 구조는 이미지의 깊이있는 생동감을 보여주며 장기보존의 원천이 됩니다.
                             </span>
                         </div>
                     </div>
@@ -87,22 +88,22 @@ const Main_Introduce = () => {
 
                 <div className="flex flex-col items-center">
                     <div className="flex items-center justify-center w-full gap-4 mb-5">
-                        <div className="flex-1 border-t-2 border-[#D0AC88]"></div>
-                        <span className="lg:text-[36px] text-[clamp(26px,5.865vw,60px)] font-bold text-[#D0AC88]">
+                    <div className="flex-1 border-t-[1px] border-[#D0AC88]"></div>
+                        <span className="lg:text-[36px] text-[clamp(26px,3.519vw,36px)] font-bold text-[#D0AC88]">
                             디아섹 액자 구조
                         </span>
-                        <div className="flex-1 border-t-2 border-[#D0AC88]"></div>
+                        <div className="flex-1 border-t-[1px] border-[#D0AC88]"></div>
                     </div>
                     <img src={P9} />
                 </div>
 
                 {/* <div className="flex flex-col items-center">
                     <div className="flex items-center justify-center w-full gap-4 mb-5">
-                        <div className="flex-1 border-t-2 border-[#D0AC88]"></div>
+                        <div className="flex-1 border-t-[1px] border-[#D0AC88]"></div>
                         <span className="lg:text-[36px] text-[clamp(24px,5.865vw,60px)] font-bold text-[#D0AC88]">
                             디아섹의 추가 설명
                         </span>
-                        <div className="flex-1 border-t-2 border-[#D0AC88]"></div>
+                        <div className="flex-1 border-t-[1px] border-[#D0AC88]"></div>
                     </div>
                     <img src={P10} />
                 </div> */}
@@ -110,11 +111,11 @@ const Main_Introduce = () => {
                 <div>
                     <div className="flex flex-col items-center">
                         <div className="flex items-center justify-center w-full gap-4 mb-10">
-                            <div className="flex-1 border-t-2 border-[#D0AC88]"></div>
-                            <span className="lg:text-[36px] text-[clamp(26px,5.865vw,60px)] font-bold text-[#D0AC88]">
+                        <div className="flex-1 border-t-[1px] border-[#D0AC88]"></div>
+                            <span className="lg:text-[36px] text-[clamp(26px,3.519vw,36px)] font-bold text-[#D0AC88]">
                                 디아섹 액자 특징
                             </span>
-                            <div className="flex-1 border-t-2 border-[#D0AC88]"></div>
+                            <div className="flex-1 border-t-[1px] border-[#D0AC88]"></div>
                         </div>
                     </div>
 
@@ -209,11 +210,11 @@ const Main_Introduce = () => {
 
                 <div className="flex flex-col items-center">
                     <div className="flex items-center justify-center w-full gap-4 mb-10">
-                        <div className="flex-1 border-t-2 border-[#D0AC88]"></div>
-                        <span className="lg:text-[36px] text-[clamp(26px,5.865vw,60px)] font-bold text-[#D0AC88]">
+                    <div className="flex-1 border-t-[1px] border-[#D0AC88]"></div>
+                        <span className="lg:text-[36px] text-[clamp(26px,3.519vw,36px)] font-bold text-[#D0AC88]">
                             디아섹코리아의 디테일
                         </span>
-                        <div className="flex-1 border-t-2 border-[#D0AC88]"></div>
+                        <div className="flex-1 border-t-[1px] border-[#D0AC88]"></div>
                     </div>
 
                     {/* <img src={P11}  className="lg:w-[55%]"/> */}
@@ -223,8 +224,8 @@ const Main_Introduce = () => {
                             {[
                                 {
                                     title: "약 4H 수준의 표면 강도",
-                                    desc: `스크래치에 강한 UV
-                                            코팅으로 깨끗하게 오래 유지됩니다`,
+                                    desc: `스크래치에 강한 UV 코팅으로
+                                            깨끗하게 오래 유지됩니다`,
                                     img: i1
                                 },
                                 {
@@ -272,7 +273,7 @@ const Main_Introduce = () => {
                                         </h3>
                                         <p 
                                             style={{ whiteSpace: 'pre-line' }}
-                                            className="text-[13px] md:text-[15.5px] text-gray-600">
+                                            className="text-[13px] md:text-[16px] text-gray-600">
                                             {item.desc}
                                         </p>
                                     </div>
@@ -283,11 +284,11 @@ const Main_Introduce = () => {
                 </div>
 
                 <div className="flex items-center justify-center w-full gap-4">
-                    <div className="flex-1 border-t-2 border-[#D0AC88]"></div>
-                    <span className="lg:text-[36px] text-[clamp(26px,5.865vw,60px)] font-bold text-[#D0AC88]">
+                <div className="flex-1 border-t-[1px] border-[#D0AC88]"></div>
+                    <span className="lg:text-[42px] text-[clamp(26px,4.105vw,42px)] font-semibold text-[#D0AC88]">
                         DIASEC HISTORY
                     </span>
-                    <div className="flex-1 border-t-2 border-[#D0AC88]"></div>
+                    <div className="flex-1 border-t-[1px] border-[#D0AC88]"></div>
                 </div>
 
                 {/* DIASEC History */}
@@ -304,7 +305,7 @@ const Main_Introduce = () => {
                         <div className="lg:w-1/2 w-full flex-1 text-black flex flex-col">
                             <h2 className="
                                 text-[clamp(17px,4.381vw,28px)] md:text-[28px]
-                                font-medium text-gray-900 mb-4 border-b pb-2 border-gray-300"
+                                font-medium text-gray-900 mb-[6px] border-b border-gray-300"
                             >
                                 Heinz Sovila와 Brulhart
                             </h2>
@@ -340,7 +341,7 @@ const Main_Introduce = () => {
                         <div className="flex-1 text-black flex flex-col">
                             <h2 className="
                                 text-[clamp(17px,4.381vw,28px)] md:text-[28px]
-                                font-medium text-gray-900 mb-4 border-b pb-2 border-gray-300"
+                                font-medium text-gray-900 mb-[6px] border-b border-gray-300"
                             >
                                 세계 확산 과정
                             </h2>
@@ -376,7 +377,7 @@ const Main_Introduce = () => {
                         <div className="flex-1 text-black flex flex-col">
                             <h2 className="
                                 text-[clamp(17px,4.381vw,28px)] md:text-[28px] 
-                                font-medium text-gray-900 mb-4 border-b pb-2 border-gray-300"
+                                font-medium text-gray-900 mb-[6px] border-b border-gray-300"
                             >
                                 국내 도입과 성장
                             </h2>

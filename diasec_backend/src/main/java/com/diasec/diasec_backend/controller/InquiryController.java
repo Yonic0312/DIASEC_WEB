@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.diasec.diasec_backend.service.InquiryService;
+import com.diasec.diasec_backend.service.SolapiService;
 import com.diasec.diasec_backend.util.ImageUtil;
 import com.diasec.diasec_backend.vo.InquiryVo;
 
@@ -43,6 +44,11 @@ public class InquiryController {
 
     @Value("${file.access.url}")
     private String accessUrl;
+
+    @Value("${notify.admin.phones}")
+    private String adminNotifyPhone;
+
+    private final SolapiService solapiService;
 
     @PostMapping("/insert")
     public ResponseEntity<?> insertInquiry(
@@ -67,6 +73,30 @@ public class InquiryController {
             // 문의 등록
             inquiryService.insertInquiry(inquiry);
             Long iid = inquiry.getIid();
+
+            String inquiryType = 
+                (pid != null && pid > 0) ? "상품문의" : "1:1 문의";
+
+            String msg = 
+                "[DIASEC KOREA]\n"
+                +"새 문의가 등록되었습니다.\n"
+                + "카테고리=" + inquiryType + "\n"
+                + "제목=" + title + "\n"
+                + "작성자=" + id;
+                
+
+            try {
+                for (String to : adminNotifyPhone.split(",")) {
+                    String phone = to.trim();
+                    if (!phone.isEmpty()) {
+                        solapiService.send(phone, msg);
+                    }
+                }
+                solapiService.send(adminNotifyPhone, msg);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+            
 
             // 이미지 저장
             if (images != null) {

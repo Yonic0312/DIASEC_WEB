@@ -1,6 +1,5 @@
-import { useState, useEffect, useContext, useRef, useMemo } from 'react';
+import { useState, useEffect, useContext, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
 import { MemberContext } from '../../context/MemberContext';
 import { toast } from 'react-toastify';
 import { v4 as uuidv4 } from 'uuid';
@@ -30,7 +29,6 @@ import c7 from '../../assets/dropDownMenu/customFrame/c7.jpg';
 import c8 from '../../assets/dropDownMenu/customFrame/c8.jpg';
 import c9 from '../../assets/dropDownMenu/customFrame/c9.jpg';
 
-
 // 보정
 import custom1 from '../../assets/custom_Frames/1.Skin RetouchB.jpg';
 import custom2 from '../../assets/custom_Frames/1.Skin RetouchF.jpg';
@@ -56,47 +54,6 @@ const presetImageMap = {
     anime: c8,
     sight: c9,
 }
-
-const SITE_ORIGIN = 'https://diasec.co.kr';
-const DEFAULT_OG_IMAGE = `${SITE_ORIGIN}/icon.png`;
-const CUSTOM_FRAME_PRESET_SEO = {
-    wedding: {
-        title: '웨딩사진 맞춤 디아섹 액자 | 디아섹코리아',
-        desc: '웨딩 스냅·본식 사진을 프리미엄 디아섹 액자로 제작합니다. 사이즈·마감 맞춤 주문이 가능합니다.',
-    },
-    family: {
-        title: '가족사진 맞춤 디아섹 액자 | 디아섹코리아',
-        desc: '가족 단체사진·기념 촬영을 고광택·무광 디아섹 액자로 오래 보존하세요.',
-    },
-    pet: {
-        title: '반려동물 사진 디아섹 액자 | 디아섹코리아',
-        desc: '반려동물 프로필·스튜디오 컷을 선명한 디아섹 액자로 맞춤 제작합니다.',
-    },
-    baby: {
-        title: '아기 성장사진 디아섹 액자 | 디아섹코리아',
-        desc: '백일·돌·성장 기록 사진을 아크릴 디아섹 액자로 인테리어용으로 제작합니다.',
-    },
-    profile: {
-        title: '프로필·증명사진 맞춤 액자 | 디아섹코리아',
-        desc: '프로필·증명 촬영 이미지를 깔끔한 디아섹 액자로 완성합니다.',
-    },
-    store: {
-        title: '매장·사무실 인테리어용 디아섹 액자 | 디아섹코리아',
-        desc: '매장·카페·사무실 벽면용 대형 디아섹 액자 맞춤 제작.',
-    },
-    game: {
-        title: '게임·굿즈 일러스트 디아섹 액자 | 디아섹코리아',
-        desc: '게임 일러스트·굿즈 아트를 컬렉션용 디아섹 액자로 제작합니다.',
-    },
-    anime: {
-        title: '애니·일러스트 디아섹 액자 | 디아섹코리아',
-        desc: '애니메이션·팬아트를 선명한 색감의 디아섹 액자로 보관·전시하세요.',
-    },
-    sight: {
-        title: '풍경·여행사진 디아섹 액자 | 디아섹코리아',
-        desc: '여행·야경·자연 풍경 사진을 거실용 디아섹 액자로 맞춤 제작합니다.',
-    },
-};
 
 const Main_CustomFrames = () => {
     const API = process.env.REACT_APP_API_BASE;
@@ -227,21 +184,24 @@ const Main_CustomFrames = () => {
 
     };
 
-    // 썸네일 이미지 클릭시 사이즈 수정 UI 반영
+    // 썸네일 이미지 클릭시 사이즈 수정 UI 반영 (업로드 중 아이템 제외)
     useEffect(() => {
-        if (selectedItem) {
-            setWidth(selectedItem.width);
-            setHeight(selectedItem.height);
-            setImageSrc(selectedItem.imageSrc);
-            setAspectRatio(selectedItem.aspectRatio);
-            setMaxWidth(selectedItem.maxWidth);
-            setMaxHeight(selectedItem.maxHeight);
-        }
+        if (!selectedItem || selectedItem.isUploading) return;
+
+        setWidth(selectedItem.width);
+        setHeight(selectedItem.height);
+        setImageSrc(selectedItem.imageSrc);
+        setAspectRatio(selectedItem.aspectRatio);
+        setMaxWidth(selectedItem.maxWidth);
+        setMaxHeight(selectedItem.maxHeight);
+        setWidthInput(String(Math.floor(selectedItem.width)));
     }, [selectedItemId]);
 
-    // 실시간으로 항목들의 사이즈 변경
+    // 실시간으로 항목들의 사이즈 변경 (업로드 중/0값 반영 방지)
     useEffect(() => {
         if (!selectedItemId || !aspectRatio) return;
+        if (!selectedItem || selectedItem.isUploading) return;
+        if (width <= 0 || height <= 0) return;
 
         const newArea = width * height;
         const newPrice = calculateCumulativePrice(newArea);
@@ -249,31 +209,55 @@ const Main_CustomFrames = () => {
         setCustomItems(prev => 
             prev.map(item => 
                 item.id === selectedItemId
-                ? { ...item, width, height, price: newPrice}
+                ? (
+                    item.width === width && item.height === height && item.price === newPrice
+                        ? item
+                        : { ...item, width, height, price: newPrice }
+                )
                 : item
             )
         );
-    }, [width, height]);
+    }, [width, height, selectedItemId, aspectRatio]);
 
     // 길이 조절
     const [maxWidth, setMaxWidth] = useState(200.7);
     const [maxHeight, setMaxHeight] = useState(101.6);
 
-    function dataURLtoFile(dataurl, filename) {
-        const arr = dataurl.split(',');
-        const mime = arr[0].match(/:(.*?);/)[1];
+    const MAX_SIZE = 50 * 1024 * 1024; // 이미지 업로드 50MB
+    const MAX_CUSTOM_ORDER_ITEMS = 10;
+    const PREVIEW_MAX_SIDE_PX = 800;
+    const ORDER_THUMB_MAX_SIDE_PX = 150;
+
+    const makePreviewDataUrl = (img, maxSidePx, quality) => {
+        const srcW = img.width;
+        const srcH = img.height;
+        const scale = Math.min(1, maxSidePx / Math.max(srcW, srcH));
+        const dstW = Math.max(1, Math.round(srcW * scale));
+        const dstH = Math.max(1, Math.round(srcH * scale));
+
+        const canvas = document.createElement('canvas');
+        canvas.width = dstW;
+        canvas.height = dstH;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return img.src;
+
+        // 배경색은 부모 레이아웃에서 처리하고, 미리보기는 축소만 수행
+        ctx.drawImage(img, 0, 0, dstW, dstH);
+        return canvas.toDataURL('image/jpeg', quality);
+    };
+
+    const dataUrlToFile = (dataUrl, filename) => {
+        const arr = dataUrl.split(',');
+        const mimeMatch = arr[0].match(/:(.*?);/);
+        const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
         const bstr = atob(arr[1]);
         let n = bstr.length;
         const u8arr = new Uint8Array(n);
-
         while (n--) {
             u8arr[n] = bstr.charCodeAt(n);
         }
         return new File([u8arr], filename, { type: mime });
-    }
-
-    const MAX_SIZE = 30 * 1024 * 1024; // 이미지 업로드 30MB
-    const MAX_CUSTOM_ORDER_ITEMS = 10;
+    };
 
     const handleImageUpload = (e) => {
         const files = Array.from(e.target.files);
@@ -281,7 +265,7 @@ const Main_CustomFrames = () => {
 
         const tooBig = files.find(f => f.size > MAX_SIZE);
         if (tooBig) {
-            alert(`30MB 초과 파일이 포함되어 있습니다. \n(${tooBig.name})`);
+            alert(`50MB 초과 파일이 포함되어 있습니다. \n(${tooBig.name})`);
             e.target.value = "";
             return;
         }
@@ -303,33 +287,40 @@ const Main_CustomFrames = () => {
         }
 
         filesToProcess.forEach(file => {
-            const reader = new FileReader();
-            reader.onload = () => {
-                const img = new Image();
+            const tempId = uuidv4();
+            setCustomItems(prev => [
+                ...prev,
+                {
+                    id: tempId,
+                    imageSrc: '',
+                    thumbnailPreview: '',
+                    thumbnailFile: null,
+                    thumbnailPreviewFile: null,
+                    file: null,
+                    aspectRatio: 1,
+                    width: 0,
+                    height: 0,
+                    maxWidth: 200.7,
+                    maxHeight: 101.6,
+                    price: 0,
+                    finishType: 'glossy',
+                    retouch: { enabled: false, types: [], note: '' },
+                    isUploading: true,
+                }
+            ]);
+            setSelectedItemId(tempId);
 
-                //이미지가 로드되면 실행되는 콜백
-                img.onload = () => {
-                    // 새 캔버스 요소를 생성하고, 이미지 크기와 동일하게 설정
-                    const canvas = document.createElement('canvas');
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    
-                    // 캔버스의 2D 그래픽 컨텍스트 가져오기
-                    const ctx = canvas.getContext('2d');
+            const objectUrl = URL.createObjectURL(file);
+            const img = new Image();
 
-                    // 캔버스 전체를 흰색으로 채움 (투명 배경을 흰색으로 덮기 위함)
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // 업로드 시점에는 서버 저장하지 않고 메모리에서만 보관
+            img.onload = async () => {
+                try {
+                    const preview800 = makePreviewDataUrl(img, PREVIEW_MAX_SIDE_PX, 1);
+                    const preview150 = makePreviewDataUrl(img, ORDER_THUMB_MAX_SIDE_PX, 1);
+                    const preview150File = dataUrlToFile(preview150, `${uuidv4()}_150.jpg`);
 
-                    // 흰 배경 위에 원본 이미지를 그려서 투명 영역을 제거
-                    ctx.drawImage(img, 0, 0);
-
-                    // 흰 배경이 합쳐진 최종 이미지를 JPEG 포맷으로 변환하여 데이터 URL로 저장
-                    const resultImage = canvas.toDataURL('image/jpeg', 1.0);
-
-                    const imageFile = dataURLtoFile(resultImage, `${uuidv4()}.jpg`);
-
-                    setImageSrc(resultImage);
+                    setImageSrc(preview800);
 
                     // 사이즈 계산
                     const ratio = img.width / img.height;
@@ -348,9 +339,12 @@ const Main_CustomFrames = () => {
                     const price = calculateCumulativePrice(area);
 
                     const newItem = {
-                        id: uuidv4(),
-                        imageSrc: resultImage,
-                        file: imageFile,
+                        id: tempId,
+                        imageSrc: preview800,
+                        thumbnailPreview: preview150,
+                        thumbnailFile: file, // 주문 확정 시 서버로 보낼 원본 파일
+                        thumbnailPreviewFile: preview150File, // 주문 확정 시 서버로 보낼 미니 썸네일 파일
+                        file,
                         aspectRatio: ratio,
                         width,
                         height,
@@ -359,13 +353,30 @@ const Main_CustomFrames = () => {
                         price,
                         finishType: 'glossy',
                         retouch: { enabled: false, types: [], note: '' },
+                        isUploading: false,
                     };
-                    setCustomItems(prev => [...prev, newItem]);
-                    setSelectedItemId(newItem.id);
-                };
-                img.src = reader.result;
+                    setCustomItems(prev => prev.map(it => (it.id === tempId ? newItem : it)));
+                    if (selectedItemId === tempId) {
+                        setWidth(width);
+                        setHeight(height);
+                        setAspectRatio(ratio);
+                        setMaxWidth(maxWidth);
+                        setMaxHeight(maxHeight);
+                        setWidthInput(String(Math.floor(width)));
+                    }
+                    setSelectedItemId(tempId);
+                } finally {
+                    URL.revokeObjectURL(objectUrl);
+                }
             };
-            reader.readAsDataURL(file);
+
+            img.onerror = () => {
+                URL.revokeObjectURL(objectUrl);
+                setCustomItems(prev => prev.filter(it => it.id !== tempId));
+                toast.error('이미지를 불러오지 못했습니다.');
+            };
+
+            img.src = objectUrl;
         })
     }
 
@@ -540,6 +551,7 @@ const Main_CustomFrames = () => {
     
     // 가격 계산 로직 추가
     const totalPriceWithoutShipping = customItems.reduce((acc, item) => {
+        if (item.isUploading) return acc;
         const area = item.width * item.height;
         return acc + calculateCumulativePrice(area);
     }, 0);
@@ -549,7 +561,7 @@ const Main_CustomFrames = () => {
         : totalPriceWithoutShipping + SHIPPING_FEE;
     
     const totalPriceWithoutShippingDiscounted = customItems.reduce(
-        (acc, item) => acc + getDiscountedUnitPrice(item.price),
+        (acc, item) => (item.isUploading ? acc : acc + getDiscountedUnitPrice(item.price)),
         0
     );
     
@@ -557,6 +569,10 @@ const Main_CustomFrames = () => {
     const handleBuyNow = () => {
         if (customItems.length === 0) {
             toast.warn("이미지를 등록해주세요.");
+            return;
+        }
+        if (customItems.some(item => item.isUploading)) {
+            toast.warn("이미지 렌더링이 완료될 때까지 잠시만 기다려주세요.");
             return;
         }
         if (customItems.length > MAX_CUSTOM_ORDER_ITEMS) {
@@ -583,6 +599,9 @@ const Main_CustomFrames = () => {
             title: '맞춤 액자',
             price: item.price,
             thumbnail: item.imageSrc,
+            thumbnailPreview: item.thumbnailPreview,
+            thumbnailFile: item.thumbnailFile,
+            thumbnailPreviewFile: item.thumbnailPreviewFile,
             size: toInchSize(item.width, item.height),
             category:'customFrames',
             quantity:'1',
@@ -737,34 +756,8 @@ const Main_CustomFrames = () => {
         )
     }
 
-    const customFramesSeo = useMemo(() => {
-        const base = {
-            title: '맞춤 디아섹 액자 · 사진보정 | 디아섹코리아',
-            desc: '사진·일러스트 업로드 후 사이즈와 마감을 고르는 맞춤 디아섹 액자 주문. 전문 사진보정 옵션으로 완성도를 높여 보세요.',
-            canonical: `${SITE_ORIGIN}/customFrames`,
-        };
-        const preset = presetKey && CUSTOM_FRAME_PRESET_SEO[presetKey];
-        if (!preset) return base;
-        return {
-            title: preset.title,
-            desc: preset.desc,
-            canonical: `${SITE_ORIGIN}/customFrames?preset=${encodeURIComponent(presetKey)}`,
-        };
-    }, [presetKey]);
-
     return (
         <div className="flex flex-col w-full h-full">
-            <Helmet>
-                <title>{customFramesSeo.title}</title>
-                <meta name="description" content={customFramesSeo.desc} />
-                <meta property="og:type" content="website" />
-                <meta property="og:title" content={customFramesSeo.title} />
-                <meta property="og:description" content={customFramesSeo.desc} />
-                <meta property="og:image" content={DEFAULT_OG_IMAGE} />
-                <meta property="og:url" content={customFramesSeo.canonical} />
-                <meta property="og:locale" content="ko_KR" />
-                <link rel="canonical" href={customFramesSeo.canonical} />
-            </Helmet>
             <div className="hidden md:block">
                 <div className='flex justify-center mt-12 items-start'>
                     <div className="flex flex-col items-center w-[80px]">
@@ -893,11 +886,11 @@ const Main_CustomFrames = () => {
                     <img 
                         src={imageSrc || initialExampleImage}
                         alt="입력한 프레임"
-                        className="absolute object-cover"
+                        className="absolute object-cover bg-white"
                         style={{
                             width: `${overlayWidthPct}%`,
                             height: `${overlayHeightPct}%`,
-                            top: '30%',
+                            top: '34%',
                             left: '50%',
                             transform: `translate(-50%, -50%)`,
                             // boxShadow: '-5px 5px 5px rgba(0, 0, 0, 0.4)',
@@ -979,13 +972,12 @@ const Main_CustomFrames = () => {
                                     setIsDragging(false);
                                     if (isCustomOrderFull) return;
 
-                                    const MAX_SIZE = 20 * 1024 * 1024;
 
                                     const files = Array.from(e.dataTransfer.files);
 
                                     const tooBig = files.find(f => f.size > MAX_SIZE);
                                     if (tooBig) {
-                                        alert(`30MB 초과 파일이 포함되어 있습니다 \n(${tooBig.name})`);
+                                        alert(`50MB 초과 파일이 포함되어 있습니다 \n(${tooBig.name})`);
                                         return;
                                     }
 
@@ -1011,7 +1003,7 @@ const Main_CustomFrames = () => {
                                     </svg>
                                     <span className="text-sm text-center">
                                             여기를 클릭하거나 <br /> 이미지를 드래그해서 올려주세요 <br />
-                                        <span className="text-xs text-gray-500">(JPG, PNG 파일만 가능, 파일당 최대 30MB)</span>
+                                        <span className="text-xs text-gray-500">(JPG, PNG 파일만 가능, 파일당 최대 50MB)</span>
                                         <br />
                                         {/* <span className="text-xs text-[a67a3e] font-medium mt-1 inline-block">
                                             {isCustomOrderFull
@@ -1152,25 +1144,39 @@ const Main_CustomFrames = () => {
                                             className={`relative flex items-center gap-2 border rounded-2xl p-[8px] shadow-sm cursor-pointer bg-white transition
                                                 ${selectedItemId === item.id ? 'border-[#D0AC88] bg-[#fffaf3]' : 'hover:bg-[#fdf4ea]'}`}>
                                             {/* 썸네일 */}
-                                            <img 
-                                                src={item.imageSrc}
-                                                alt={`미리보기 ${idx + 1}`}
-                                                className='w-[70px] h-[70px] object-cover object-center rounded-md border'
-                                            />
+                                            <div className='w-[70px] h-[70px] rounded-md border overflow-hidden bg-gray-100 flex items-center justify-center'>
+                                                {item.imageSrc ? (
+                                                    <img 
+                                                        src={item.imageSrc}
+                                                        alt={`미리보기 ${idx + 1}`}
+                                                        className='w-[70px] h-[70px] object-cover object-center'
+                                                    />
+                                                ) : (
+                                                    <span className="text-[10px] text-gray-500">로딩중</span>
+                                                )}
+                                            </div>
 
                                             {/* 우측 영역 */}
                                             <div className='flex-1 min-w-0'>
-                                                <div className="flex items-start justify-between md:gap-0 gap-2">
+                                                <div className="flex items-start justify-between md:gap-0 gap-2 min-h-[30px]">
                                                     <div className="min-w-0">
-                                                        <p className='text-[12.5px] font-semibold text-gray-800'>
-                                                            {Math.floor(item.width)} x {Math.floor(item.height)}cm
-                                                        </p>
-                                                        <p className="mt-[-4px] mb-[4px]">
-                                                            <SitePriceRow
-                                                                unitPrice={item.price}
-                                                                neutralClassName={`${SITE_PRICE_TEXT} text-gray-800`}
-                                                            />
-                                                        </p>
+                                                        {item.isUploading ? (
+                                                            <p className='text-[12.5px] font-semibold text-gray-700'>
+                                                                이미지 렌더링 중...
+                                                            </p>
+                                                        ) : (
+                                                            <>
+                                                                <p className='text-[12.5px] font-semibold text-gray-800'>
+                                                                    {Math.floor(item.width)} x {Math.floor(item.height)}cm
+                                                                </p>
+                                                                <p className="mt-[-4px] mb-[4px]">
+                                                                    <SitePriceRow
+                                                                        unitPrice={item.price}
+                                                                        neutralClassName={`${SITE_PRICE_TEXT} text-gray-800`}
+                                                                    />
+                                                                </p>
+                                                            </>
+                                                        )}
                                                     </div>
 
                                                     {/* 삭제 버튼 */}
@@ -1393,6 +1399,9 @@ const Main_CustomFrames = () => {
                                     title: '맞춤 액자',
                                     price: item.price,
                                     thumbnail: item.imageSrc,
+                                    thumbnailPreview: item.thumbnailPreview,
+                                    thumbnailFile: item.thumbnailFile,
+                                    thumbnailPreviewFile: item.thumbnailPreviewFile,
                                     size: toInchSize(item.width, item.height),
                                     category: 'customFrames',
                                     quantity: '1',
@@ -1430,6 +1439,9 @@ const Main_CustomFrames = () => {
                             title: '맞춤 액자',
                             price: item.price,
                             thumbnail: item.imageSrc,
+                            thumbnailPreview: item.thumbnailPreview,
+                            thumbnailFile: item.thumbnailFile,
+                            thumbnailPreviewFile: item.thumbnailPreviewFile,
                             size: toInchSize(item.width, item.height),
                             category:'customFrames',
                             quantity:'1',
@@ -1465,11 +1477,11 @@ const Main_CustomFrames = () => {
             {/* 보정 요청 모달 */}
             {retouchModalOpen && (
                 <div
-                    className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center md:mt-[74px]"
+                    className="fixed inset-0 bg-black/50 z-[10000] flex items-center justify-center"
                     onClick={closeRetouchModal}
                 >
                     <div
-                        className="w-full h-[81%] overflow-y-scroll max-w-lg bg-white shadow-xl py-3 px-4 md:px-4 mx-4"
+                        className="w-full h-[90%] overflow-y-scroll max-w-lg bg-white shadow-xl py-3 px-4 md:px-4 mx-4"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="relative flex items-start justify-between border-b-[1px]">
@@ -1550,28 +1562,34 @@ const Main_CustomFrames = () => {
                             </button>
                         </div>
 
-                        <div>
+                        <div className="mt-4">
                             {/* 보정 비교 */}
                             {/* xl:w-[550px] lg:w-[clamp(380px,33.62vw,430px)] md:w-[clamp(250px,32.257vw,330px)] sm:w-[clamp(230px,32.59vw,250px)]  */}
                             <div className='
-                                max-w-[380px] border
-                                aspect-[1024/1366] mx-auto bg-opacity-60 rounded-lg mt-5
-                                xl:p-6 lg:p-5 md:p-4 p-2
+                                max-w-[530px] border
+                                aspect-[1024/1366] mx-auto bg-opacity-60 rounded-lg
+                                pt-0
+                                xl:px-6 xl:py-4
+                                lg:px-5 lg:py-3
+                                px-4 py-2
                             '>
                                 <h3 className='
                                     text-[clamp(16px,1.759vw,18px)] lg:text-[18px]
-                                    font-semibold text-center  text-[a67a3e]'>{current.title}</h3>
+                                    font-semibold text-center  text-[a67a3e] mb-2'
+                                >
+                                    {current.title}
+                                </h3>
                                 
                                 <div className='relative w-full flex justify-center items-center'>
                                     <img src={
                                         showAfter ? current.after : current.before}
                                         alt="보정 비교" 
-                                        className='rounded-xl transition duration-500 shadow-lg max-w-full aspect-[1024/1366] object-contain'
+                                        className='rounded-xl transition duration-500 max-w-full aspect-[1024/1366] object-contain'
                                     />
                                     <div className='
                                         text-[clamp(14px,1.9544vw,15px)] md:text-[clamp(15px,1.564vw,16px)] lg:text-[16px]
-                                        
-                                        absolute bottom-2 flex gap-3 px-4 py-2'> {/* transform -translate-x-1/2 너비의 절반만큼 왼쪽으로 간다 */}
+                                        absolute bottom-2 flex gap-3 px-4 py-2'
+                                    > {/* transform -translate-x-1/2 너비의 절반만큼 왼쪽으로 간다 */}
                                         <button
                                             className={`
                                                 px-4 py-1 rounded-full font-semibold transition ${
@@ -1595,7 +1613,7 @@ const Main_CustomFrames = () => {
                                 </div>
 
                                 {/* 페이지 네이션 */}
-                                <div className="mt-6 flex justify-center gap-2">
+                                <div className="mt-3 flex justify-center gap-2">
                                     {beforeAfterData.map((_, idx) => (
                                         <button
                                             key={idx}
@@ -1615,7 +1633,7 @@ const Main_CustomFrames = () => {
                                 <span
                                     className="
                                         flex flex-col justify-center items-center
-                                        mt-4
+                                        mt-3
                                         md:text-sm text-[clamp(11px,1.8252vw,14px)]
                                         font-medium tracking-wide
                                         text-gray-600

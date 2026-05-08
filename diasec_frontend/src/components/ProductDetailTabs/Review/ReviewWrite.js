@@ -1,5 +1,5 @@
-import { useEffect, useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState, useContext, useMemo } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { MemberContext } from '../../../context/MemberContext';
 import {DragDropContext, Droppable, Draggable} from '@hello-pangea/dnd';
 import axios from 'axios';
@@ -9,7 +9,16 @@ import { toast } from 'react-toastify';
 const ReviewWrite = () => {
     const API = process.env.REACT_APP_API_BASE;
     const navigate = useNavigate();
+    const location = useLocation();
     const { member } = useContext(MemberContext);
+
+    const guestOid = location.state?.oid;
+    const guestPw = location.state?.guestPassword;
+    const guestModeIntent = location.state?.guestMode === true;
+    const isGuestReview = useMemo(
+        () => !member?.id && guestModeIntent && guestOid != null && guestPw != null && String(guestPw).length > 0,
+        [member?.id, guestModeIntent, guestOid, guestPw]
+    );
     const [eligibleProducts, setEligibleProducts] = useState([]);
     const [selectedPid, setSelectedPid] = useState(0);
     const [rating, setRating] = useState(0);
@@ -62,18 +71,40 @@ const ReviewWrite = () => {
     };
 
     const fetchEligibleProducts = async () => {
-        if (!member?.id) return;
         try {
-            const res = await axios.get(`${API}/review/eligible?id=${member.id}`);
-            setEligibleProducts(res.data || []);
+            if (member?.id) {
+                const res = await axios.get(`${API}/review/eligible?id=${member.id}`);
+                setEligibleProducts(res.data || []);
+                return;
+            }
+            if (isGuestReview) {
+                const res = await axios.post(`${API}/review/guest-eligible`, {
+                    oid: guestOid,
+                    guestPassword: guestPw,
+                });
+                setEligibleProducts(Array.isArray(res.data) ? res.data : []);
+                return;
+            }
+            setEligibleProducts([]);
         } catch (err) {
             console.error('배송완료 상품 조회 실패', err);
+            const msg = err?.response?.data?.message;
+            if (member?.id || isGuestReview) {
+                toast.error(typeof msg === 'string' ? msg : '작성 가능한 상품을 불러오지 못했습니다.');
+            }
+            setEligibleProducts([]);
         }
     };
 
     useEffect(() => {
+        if (!member?.id && guestModeIntent && (guestOid == null || guestOid === '' || !guestPw)) {
+            toast.warn('비회원 주문조회에서 주문 상세를 거쳐 들어와야 리뷰를 작성할 수 있습니다.');
+            navigate('/guestOrderSearch');
+            return;
+        }
         fetchEligibleProducts();
-    }, [member?.id]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- guest 경로는 location.state 기준으로만 갱신
+    }, [member?.id, guestModeIntent, guestOid, guestPw]);
 
     // 업로드 이미지 미리보기 표시
     const [previewImages, setPreviewImages] = useState([]);
@@ -96,6 +127,11 @@ const ReviewWrite = () => {
     };
 
     const handleSubmit = async () => {
+        if (!isGuestReview && !member?.id) {
+            toast.warn('로그인 후 이용하거나, 비회원 주문조회에서 주문 상세를 거쳐 리뷰를 작성해 주세요.');
+            return;
+        }
+
         if (!selectedPid || rating === 0 || !title.trim() || !content.trim()) {
             toast.error('모든 항목을 작성해주세요.');
             return;
@@ -118,18 +154,26 @@ const ReviewWrite = () => {
         }
 
         const formData = new FormData();
+        const guestSubmit = isGuestReview;
+
+        if (guestSubmit) {
+            formData.append('oid', guestOid);
+            formData.append('guestPassword', guestPw);
+        } else {
+            formData.append('id', member.id);
+        }
         [
-            ['id', member.id],
             ['pid', selectedPid],
             ['rating', rating],
-            ['title', title],
-            ['content', content],
+            ['title', title.trim()],
+            ['content', content.trim()],
             ['itemId', selectedItemId]
         ].forEach(([key, value]) => formData.append(key, value));
         compressedFiles.forEach(file => formData.append('images', file));
 
         try {
-            const res = await axios.post(`${API}/review/write`, formData, {
+            const endpoint = guestSubmit ? `${API}/review/guest-write` : `${API}/review/write`;
+            const res = await axios.post(endpoint, formData, {
                 headers: { 'Content-Type' : 'multipart/form-data' }
             });
             const rewardAmount = Number(res?.data?.rewardAmount || 0);
@@ -150,8 +194,11 @@ const ReviewWrite = () => {
             setPreviewImages([]);
         } catch (err) {
             console.error('리뷰 등록 실패', err);
+            const msg = err?.response?.data?.message;
             if (err?.response?.status === 409) {
-                toast.error(err?.response?.data?.message || '이미 작성된 리뷰입니다.');
+                toast.error(typeof msg === 'string' ? msg : '이미 작성된 리뷰입니다.');
+            } else if (typeof msg === 'string') {
+                toast.error(msg);
             } else {
                 toast.error('리뷰 등록에 실패했습니다.');
             }
@@ -184,6 +231,11 @@ const ReviewWrite = () => {
                         font-bold text-center">
                     상품 리뷰 작성
                 </h2>
+                {isGuestReview && (
+                    <p className="text-center text-sm text-gray-600 mt-2">
+                        비회원 리뷰는 적립금 이벤트 대상에서 제외됩니다.
+                    </p>
+                )}
 
                 { /* 상품 미리보기*/}
                 {selectedProduct && (
@@ -296,7 +348,7 @@ const ReviewWrite = () => {
                         setIsDragOverThumb(false);
                         const files = Array.from(e.dataTransfer.files);
                         if (files.length + images.length > MAX_IMAGES) {
-                            toast.error("이미지는 최대 ${MAX_IMAGES}장까지 업로드 가능합니다.");
+                            toast.error(`이미지는 최대 ${MAX_IMAGES}장까지 업로드 가능합니다.`);
                             return;
                         }
                         for (const file of files) {

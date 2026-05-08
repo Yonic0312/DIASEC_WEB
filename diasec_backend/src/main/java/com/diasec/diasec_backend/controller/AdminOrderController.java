@@ -120,6 +120,20 @@ public class AdminOrderController {
         }
     }
 
+    /** 맞춤액자 150px 썸네일만 삭제 */
+    @PostMapping("/order/delete-custom-thumbnail")
+    public ResponseEntity<?> deleteCustomThumbnailPreview(@RequestBody Map<String, Object> body) {
+        try {
+            Long itemId = Long.valueOf(body.get("itemId").toString());
+            boolean success = adminOrderService.deleteCustomThumbnailPreview(itemId);
+            return ResponseEntity.ok(Map.of("success", success));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError()
+                .body(Map.of("success", false, "message", e.getMessage()));
+        }
+    }
+
     @PostMapping("/order/delete-claim-files")
     public ResponseEntity<?> deleteClaimFiles(@RequestBody Map<String, Object> body) {
         try {

@@ -2,11 +2,11 @@ import { getSiteDiscountPercent, getDiscountedUnitPrice } from '../../utils/site
 
 /** 공통 가격 텍스트 크기 — import 해서 neutralClassName 등에 재사용 */
 export const SITE_PRICE_TEXT =
-    'lg:text-[15px] text-[clamp(13px,1.46vw,15px)]';
+    'lg:text-[14.5px] text-[clamp(13px,1.417vw,14.5px)]';
 
 /** 취소선 정가 — 할인가보다 약 1~2pt(≈2px) 작게 */
 export const SITE_PRICE_STRIKE_TEXT =
-    'lg:text-[13px] text-[clamp(11px,1.28vw,13px)]';
+    'text-[12px]';
 
 export function SitePriceRow({
     unitPrice,

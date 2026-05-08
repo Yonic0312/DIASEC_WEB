@@ -216,7 +216,7 @@ export default function MainEventPopup({ events = [] }) {
                             px-4 py-1 rounded-lg
                             text-[12px] font-semibold
                             bg-[#fff] border text-black
-                            hover:bg-black transition
+                            hover:bg-black hover:text-white transition
                         "
                         onClick={close}
                     >

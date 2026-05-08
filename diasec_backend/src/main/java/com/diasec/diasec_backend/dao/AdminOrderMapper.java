@@ -35,4 +35,7 @@ public interface AdminOrderMapper {
     int clearThumbnail(@Param("itemId") Long itemId);
 
     int markCreditRefundedIfNotYet(Long itemId);
+
+    /** 맞춤액자 최초 배송완료 시각 기록(이미 있으면 유지) */
+    int updateCustomFrameDeliveredAtIfNull(@Param("itemId") Long itemId);
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState, useContext } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -10,6 +10,8 @@ const OrderDetail = () => {
     const API = process.env.REACT_APP_API_BASE;
     const { member } = useContext(MemberContext);
     const navigate = useNavigate();
+    const location = useLocation();
+    const guestPasswordFromSearch = location.state?.guestPassword;
     const { oid } = useParams();
     const [order, setOrder] = useState(null);
 
@@ -460,6 +462,47 @@ const OrderDetail = () => {
                                     주문취소
                                 </button>
                             )}
+
+                            {order.items.some((it) => it.orderStatus === '배송완료') && (
+                                member ? (
+                                    <button
+                                        className="
+                                            px-2 py-1 
+                                            md:text-[12px] text-[10px]
+                                            font-medium border border-amber-600 text-amber-800 rounded-xl hover:bg-amber-50 transition"
+                                        type="button"
+                                        onClick={() => navigate('/reviewWrite')}
+                                    >
+                                        리뷰 작성
+                                    </button>
+                                ) : (
+                                    <button
+                                        className="
+                                            px-2 py-1 
+                                            md:text-[12px] text-[10px]
+                                            font-medium border border-amber-600 text-amber-800 rounded-xl hover:bg-amber-50 transition"
+                                        type="button"
+                                        onClick={() => {
+                                            if (!guestPasswordFromSearch) {
+                                                toast.warn(
+                                                    '비회원 주문조회에서 주문 상세로 들어온 뒤 리뷰를 작성할 수 있습니다. 주문조회에서 다시 확인해 주세요.'
+                                                );
+                                                navigate('/guestOrderSearch');
+                                                return;
+                                            }
+                                            navigate('/reviewWrite', {
+                                                state: {
+                                                    guestMode: true,
+                                                    oid: order.oid,
+                                                    guestPassword: guestPasswordFromSearch,
+                                                },
+                                            });
+                                        }}
+                                    >
+                                        리뷰 작성
+                                    </button>
+                                )
+                            )}
                             
                             {member ? (
                                 <button 
@@ -502,7 +545,7 @@ const OrderDetail = () => {
                         <img
                             src={
                                 item.category === 'customFrames'
-                                    ? item.thumbnail || thumbCustom
+                                    ? item.thumbnailPreview || item.thumbnail || thumbCustom
                                     : item.thumbnail
                             }
                             alt={item.title}

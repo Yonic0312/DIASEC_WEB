@@ -89,7 +89,7 @@ const OrderTracking = () => {
                 <img
                     src={
                         item.items[0].category === 'customFrames'
-                            ? item.items[0].thumbnail || thumbCustom
+                            ? item.items[0].thumbnailPreview || item.items[0].thumbnail || thumbCustom
                             : item.items[0].thumbnail
                     }
                     alt={item.title}

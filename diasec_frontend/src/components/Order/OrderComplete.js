@@ -17,10 +17,10 @@ const OrderComplete = () => {
         <div className="
             text-gray-600 
             text-[12px] md:text-[14px]
-            text-center mb-6">
+            text-center mb-6 whitespace-pre-line">
             주문해주셔서 감사합니다. <br/>
                 {guestPassword
-                    ? "비회원 주문은 '주문번호 + 비밀번호'로만 조회가 가능합니다."
+                    ? `비회원 주문은 주문번호 + 비밀번호로만 조회됩니다. \n[로그인] 화면 맨 아래 「비회원 주문조회」를 이용해 주세요.`
                     : "주문내역은 [마이페이지 > 주문내역]에서 확인하실 수 있습니다."
                 }
         </div>
@@ -105,15 +105,9 @@ const OrderComplete = () => {
 
             {/* 비회원 비밀번호 */}
             {guestPassword && (
-                <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4">
-                    <p className="mb-2 text-red-600 font-semibold">비회원 주문 비밀번호</p>
-                    <p className="mt-1 text-base font-extrabold text-red-700">
-                        {guestPassword}
-                    </p>
-                    <p className="mt-2 text-sm text-red-600">
-                        (주문번호와 비밀번호를 꼭 기억해두세요. 분실 시 고객센터로 문의 바랍니다.)
-                    </p>
-                </div>
+                <p className="mt-2 text-sm text-red-600">
+                    ※ 주문번호와 비밀번호를 꼭 기억해두세요. 분실 시 고객센터로 문의 바랍니다.
+                </p>
             )}
         </div>
 

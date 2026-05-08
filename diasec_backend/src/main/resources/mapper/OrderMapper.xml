@@ -51,12 +51,12 @@
     <!-- order_items 테이블에 주문 아이템 목록 저장 -->
     <insert id="insertOrderItem" parameterType="map">
         INSERT INTO order_items (
-            oid, cid, pid, category, title, author, quantity, price, period, size, thumbnail, 
+            oid, cid, pid, category, title, author, quantity, price, period, size, thumbnail, thumbnail_preview,
             order_status, deposit, finish_type, 
             retouch_enabled, retouch_types, retouch_note
         ) VALUES (
             #{oid}, #{item.cid}, #{item.pid}, #{item.category}, #{item.title}, #{item.author}, #{item.quantity}, #{item.price}, 
-            #{item.period}, #{item.size}, #{item.thumbnail}, #{item.orderStatus}, #{item.deposit}, #{item.finishType},
+            #{item.period}, #{item.size}, #{item.thumbnail}, #{item.thumbnailPreview}, #{item.orderStatus}, #{item.deposit}, #{item.finishType},
             COALESCE(#{item.retouchEnabled}, 0), #{item.retouchTypes}, #{item.retouchNote}
         )
     </insert>
@@ -79,7 +79,9 @@
     <select id="selectOrderItems" resultType="OrderItemsVo">
         SELECT 
             oi.item_id as itemId, oi.oid, oi.cid, oi.pid, oi.category, oi.title, oi.quantity, oi.price, 
-            oi.period, oi.size, oi.thumbnail, oi.order_status as orderStatus, o.final_price AS finalPrice, finish_type as finishType,
+            oi.period, oi.size, oi.thumbnail, oi.thumbnail_preview as thumbnailPreview,
+            oi.custom_frame_delivered_at as customFrameDeliveredAt,
+            oi.order_status as orderStatus, o.final_price AS finalPrice, finish_type as finishType,
             oi.lease_start as leaseStart, oi.lease_end as leaseEnd, tracking_number as trackingNumber, tracking_company as trackingCompany,
             oi.retouch_enabled as retouchEnabled,
             oi.retouch_types as retouchTypes,
@@ -128,7 +130,9 @@
     <select id="selectOrderItemById" resultType="OrderItemsVo">
         SELECT 
             oi.item_id as itemId, oi.oid, oi.cid, oi.pid, oi.category, oi.title, oi.author, oi.quantity, oi.price, oi.deposit, oi.finish_type as finishType,
-            oi.period, oi.size, oi.thumbnail, oi.order_status as orderStatus, 
+            oi.period, oi.size, oi.thumbnail, oi.thumbnail_preview as thumbnailPreview,
+            oi.custom_frame_delivered_at as customFrameDeliveredAt,
+            oi.order_status as orderStatus, 
             oi.lease_start as leaseStart, oi.lease_end as leaseEnd,
             oi.tracking_number as trackingNumber, oi.tracking_company as trackingCompany,
             oi.retouch_enabled as retouchEnabled,
@@ -490,5 +494,26 @@
         SET deleted_at = NOW()
         WHERE file_id = #{fileId}
             AND deleted_at IS NULL
+    </update>
+
+    <!-- 맞춤액자: 배송완료 후 30일 경과한 썸네일만 정리 -->
+    <select id="selectCustomFrameStalePreviewItems" resultType="OrderItemsVo">
+        <![CDATA[
+        SELECT
+            item_id AS itemId,
+            thumbnail_preview AS thumbnailPreview
+        FROM order_items
+        WHERE category = 'customFrames'
+          AND thumbnail_preview IS NOT NULL
+          AND TRIM(thumbnail_preview) <> ''
+          AND custom_frame_delivered_at IS NOT NULL
+          AND custom_frame_delivered_at < DATE_SUB(NOW(), INTERVAL 30 DAY)
+        ]]>
+    </select>
+
+    <update id="clearThumbnailPreview">
+        UPDATE order_items
+        SET thumbnail_preview = NULL
+        WHERE item_id = #{itemId}
     </update>
 </mapper>

@@ -1,5 +1,6 @@
 package com.diasec.diasec_backend.service;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -7,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.diasec.diasec_backend.dao.AdminOrderMapper;
+import com.diasec.diasec_backend.dao.OrderMapper;
 import com.diasec.diasec_backend.util.ImageUtil;
 import com.diasec.diasec_backend.vo.CreditVo;
 import com.diasec.diasec_backend.vo.OrderItemsVo;
@@ -18,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 public class AdminOrderService {
     
     private final AdminOrderMapper adminOrderMapper;
+    private final OrderMapper orderMapper;
     private final ImageUtil imageUtil;
     private final OrderService orderService;
     private final CreditService creditService;
@@ -155,6 +158,23 @@ public class AdminOrderService {
         boolean success = updateOrderItemStatus(itemId, newStatus);
         if (!success) return Map.of("success", false);
 
+        int deletedCustomFrameOriginal = 0;
+
+        // 맞춤액자: 배송완료 시 원본(고해상) 파일 삭제 + 배송완료 시각 기록(썸네일 30일 자동삭제 기준)
+        if ("배송완료".equals(newStatus)) {
+            OrderItemsVo row = orderMapper.selectOrderItemById(itemId);
+            if (row != null && "customFrames".equals(row.getCategory())) {
+                adminOrderMapper.updateCustomFrameDeliveredAtIfNull(itemId);
+                String th = row.getThumbnail();
+                if (th != null && !th.isBlank()) {
+                    imageUtil.deleteImage(th);
+                    if (adminOrderMapper.clearThumbnail(itemId) > 0) {
+                        deletedCustomFrameOriginal = 1;
+                    }
+                }
+            }
+        }
+
         if ("결제완료".equals(newStatus) && oid != null) {
             orderService.sendAdminOrderPaidSms(oid, "입금확인");
         }
@@ -183,10 +203,27 @@ public class AdminOrderService {
             }
         }
 
-        return Map.of(
-            "success", true,
-            "refundedAmount", refundedAmount,
-            "deletedClaimFiles", deletedClaimFiles
-        );
+        Map<String, Object> out = new HashMap<>();
+        out.put("success", true);
+        out.put("refundedAmount", refundedAmount);
+        out.put("deletedClaimFiles", deletedClaimFiles);
+        out.put("deletedCustomFrameOriginal", deletedCustomFrameOriginal);
+        return out;
+    }
+
+    /** 맞춤액자 150px 썸네일만 삭제(파일 + DB) */
+    @Transactional
+    public boolean deleteCustomThumbnailPreview(Long itemId) {
+        OrderItemsVo row = orderMapper.selectOrderItemById(itemId);
+        if (row == null || !"customFrames".equals(row.getCategory())) {
+            return false;
+        }
+        String preview = row.getThumbnailPreview();
+        if (preview == null || preview.isBlank()) {
+            orderMapper.clearThumbnailPreview(itemId);
+            return true;
+        }
+        imageUtil.deleteImage(preview);
+        return orderMapper.clearThumbnailPreview(itemId) > 0;
     }
 }

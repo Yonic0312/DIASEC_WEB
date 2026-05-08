@@ -17,6 +17,15 @@ const Admin_Sidebar = () => {
 
     const [orderCounts, setOrderCounts] = useState({});
 
+    // 방문자 수
+    const [visitStats, setVisitStats] = useState({ today: 0, total: 0 });
+
+    useEffect(() => {
+        axios.get(`${API}/admin/visit/stats`, { withCredentials: true })
+            .then(res => setVisitStats(res.data || { today: 0, total: 0 }))
+            .catch(err => console.error('방문자 통계 불러오기 실패', err));
+    }, [API]);
+
     // 토글 상태
     const [openOrderStatus, setOpenOrderStatus] = useState(false);
 
@@ -39,9 +48,16 @@ const Admin_Sidebar = () => {
         '환불완료'
     ]), []);
 
-    // 전체 합계(토글 버튼에 표시)
+    // 처리 완료 상태는 사이드바 합계 숫자에서 제외
+    const EXCLUDED_FROM_SIDEBAR_TOTAL = useMemo(
+        () => new Set(['배송완료', '교환완료', '환불완료']),
+        []
+    )
+    
     const totalOrderCount = ORDER_STATUS_LIST.reduce(
-        (sum, s) => sum + (orderCounts[s] || 0),
+        (sum, s) => 
+            sum + 
+            (EXCLUDED_FROM_SIDEBAR_TOTAL.has(s) ? 0 : (orderCounts[s] || 0)),
         0
     );
 
@@ -96,8 +112,16 @@ const Admin_Sidebar = () => {
 
     return (
         <div className="flex flex-col items-start w-[200px] mr-4 gap-3 mb-20">
-            <button className="text-2xl mb-10">Admin Page</button>
-            
+            <button
+                onClick={() => navigate('/admin/insert_Product')}
+                className="text-2xl mb-7 cursor-pointer"
+            >
+                Admin Page
+            </button>
+
+            <div className="text-sm mb-3">
+                방문자수 : {visitStats.today} / {visitStats.total}
+            </div>
             <span className="text-lg font-bold">상품 관리</span>
             <button className="text-sm opacity-65" onClick={() => navigate('/admin/insert_Product')}>상품 등록하기</button>
             <button className="text-sm opacity-65" onClick={() => navigate('/admin_ProductManager')}>상품 수정</button>

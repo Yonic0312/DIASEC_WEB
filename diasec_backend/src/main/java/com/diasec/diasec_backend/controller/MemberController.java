@@ -191,12 +191,23 @@ public class MemberController {
             member.setProvider(foundMember.getProvider());
 
             // 현재 로그인 사용자 Authentication 갱신
-            Authentication newAuth = new UsernamePasswordAuthenticationToken(
-                new CustomUserDetails(member),
-                null,
-                List.of(new SimpleGrantedAuthority("ROLE_USER"))
-            );
+            // Authentication newAuth = new UsernamePasswordAuthenticationToken(
+            //     new CustomUserDetails(member),
+            //     null,
+            //     List.of(new SimpleGrantedAuthority("ROLE_USER"))
+            // );
 
+            // SecurityContextHolder.getContext().setAuthentication(newAuth);
+
+            Authentication newAuth = new UsernamePasswordAuthenticationToken(
+                // new CustomUserDetails(member),
+                // null,
+                // List.of(new SimpleGrantedAuthority("ROLE_USER"))
+
+                new CustomUserDetails(foundMember),
+                null,
+                List.of(new SimpleGrantedAuthority("ROLE_" + foundMember.getRole()))
+            );
             SecurityContextHolder.getContext().setAuthentication(newAuth);
 
             // 세션에도 수동으로 저장

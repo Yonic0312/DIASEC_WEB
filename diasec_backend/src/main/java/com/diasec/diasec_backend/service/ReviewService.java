@@ -24,6 +24,14 @@ public class ReviewService {
         return reviewMapper.getEligibleReviews(id);
     }
 
+    public List<ReviewVo> getEligibleReviewsByGuestOid(Long oid) {
+        return reviewMapper.getEligibleReviewsByGuestOid(oid);
+    }
+
+    public boolean isGuestItemReviewable(Long oid, int itemId, Long pid) {
+        return reviewMapper.countGuestReviewableItem(oid, itemId, pid) > 0;
+    }
+
     // 리뷰 작성
     public void insertReview(ReviewVo review){
         reviewMapper.insertReview(review);

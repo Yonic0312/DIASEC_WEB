@@ -78,7 +78,7 @@ public class SecurityConfig {
                     "/api/member/check-id", "/api/member/check-password", 
                     "/api/member/check-email", "/api/member/me", "/api/member/check-phone", 
                     "/api/member/link-social", "/api/member/link-social/pending",
-                    "/api/sms/**"
+                    "/api/sms/**", "/login/**", "/oauth2/**", "/error"
                 ).permitAll()
 
                 // 4. 비회원 주문 관련
@@ -89,6 +89,9 @@ public class SecurityConfig {
 
                 // 맞춤액자: 비회원도 이미지 tmp 업로드 후 URL만 주문에 실음
                 .requestMatchers(HttpMethod.POST, "/api/uploads/customFrames/tmp").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/visit/track").permitAll() // 조회수
+
+                .requestMatchers(HttpMethod.POST, "/api/review/guest-eligible", "/api/review/guest-write").permitAll()
 
                 // 5. 관리자
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")

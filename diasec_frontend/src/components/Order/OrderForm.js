@@ -350,7 +350,6 @@ const OrderForm = () => {
     }
 
     const submitOrder = async () => {
-
         const orderData = {
             id: member ? member.id : '',
             ordererName,
@@ -385,7 +384,9 @@ const OrderForm = () => {
                 price: getDiscountedUnitPrice(item.price),
                 period: item.period,
                 size: item.size,
-                thumbnail: item.thumbnail,
+                // 맞춤액자는 주문 확정 시 multipart 파일로 업로드 후 서버에서 URL 세팅
+                thumbnail: item.category === 'customFrames' ? null : item.thumbnail,
+                thumbnailPreview: item.category === 'customFrames' ? null : item.thumbnailPreview,
                 orderStatus,
                 deposit: item.deposit,
                 finishType: item.finishType ?? 'glossy',
@@ -398,7 +399,21 @@ const OrderForm = () => {
         };
 
         try {
-            const response = await axios.post(`${API}/order/insert`, orderData);
+            const formData = new FormData();
+            formData.append('orderJson', JSON.stringify(orderData));
+
+            items.forEach((item) => {
+                if (item.category === 'customFrames' && item.thumbnailFile instanceof File) {
+                    formData.append('customFrameFiles', item.thumbnailFile);
+                }
+                if (item.category === 'customFrames' && item.thumbnailPreviewFile instanceof File) {
+                    formData.append('customFramePreviewFiles', item.thumbnailPreviewFile);
+                }
+            });
+
+            const response = await axios.post(`${API}/order/insert`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
             if (response.data.success) {
                 // 장바구니 삭제
                 if (!isGuest && member?.id) {
@@ -612,7 +627,7 @@ const OrderForm = () => {
                             flex w-[58%] h-fit
                             gap-[6px] md:gap-3"
                         >
-                            <img src={item.thumbnail} 
+                            <img src={item.thumbnailPreview || item.thumbnail}
                                 className="
                                     shrink-0
                                     md:w-[100px] w-[clamp(70px,13.03vw,100px)]

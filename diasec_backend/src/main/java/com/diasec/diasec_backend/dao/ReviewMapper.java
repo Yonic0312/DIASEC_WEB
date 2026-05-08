@@ -11,6 +11,10 @@ public interface ReviewMapper {
     // 리뷰 작성 부분 목록 가져오기
     List<ReviewVo> getEligibleReviews(String id);
 
+    List<ReviewVo> getEligibleReviewsByGuestOid(@Param("oid") Long oid);
+
+    int countGuestReviewableItem(@Param("oid") Long oid, @Param("itemId") int itemId, @Param("pid") Long pid);
+
     // 리뷰 작성
     void insertReview(ReviewVo review);
     int countReviewByItemId(@Param("itemId") int itemId);

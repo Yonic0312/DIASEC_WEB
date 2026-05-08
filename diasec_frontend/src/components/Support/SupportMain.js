@@ -140,7 +140,7 @@ const SupportMain = () => {
                         >
                             {item.icon}
                             <div className="text-left md:text-center">
-                                <div className="font-semibold mb-1">{item.title}</div>
+                                <div className="font-semibold">{item.title}</div>
                                 <div className="text-gray-600">{item.desc}</div>
                                 {item.action && (
                                     <button onClick={item.action} className="text-blue-500 text-[13px] mt-1 hover:underline">바로가기 →</button>

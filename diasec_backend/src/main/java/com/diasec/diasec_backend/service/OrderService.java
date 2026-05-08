@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.diasec.diasec_backend.dao.CreditMapper;
 import com.diasec.diasec_backend.dao.OrderMapper;
 import com.diasec.diasec_backend.util.ImageUtil;
 import com.diasec.diasec_backend.vo.CreditVo;
@@ -30,6 +29,7 @@ public class OrderService {
     
     private final OrderMapper orderMapper;
     private final CreditService creditService;
+    private final ProductService productService;
     private final ImageUtil imageUtil;
     private final SolapiService solapiService;
 
@@ -44,6 +44,12 @@ public class OrderService {
 
     // OrderForm 주문 저장
     @Transactional
+    public void insertOrder(OrderVo orderVo, List<MultipartFile> customFrameFiles, List<MultipartFile> customFramePreviewFiles) {
+        applyCustomFrameFiles(orderVo, customFrameFiles, customFramePreviewFiles);
+        insertOrder(orderVo);
+    }
+
+    @Transactional
     public void insertOrder(OrderVo orderVo) {
         // 1. orders 테이블에 주문 저장 (oid 생성)
         orderMapper.insertOrder(orderVo);
@@ -51,8 +57,19 @@ public class OrderService {
         // 2. order_items 테이블에 주문 아이템 리스트 저장
         List<OrderItemsVo> items = orderVo.getItems();
         for (OrderItemsVo item : items) {
+            // base64(data:image/...)로 온 경우 파일 저장 후 URL로 정규화
+            item.setThumbnail(normalizeBase64ImageUrlIfNeeded(item.getThumbnail()));
+            item.setThumbnailPreview(normalizeBase64ImageUrlIfNeeded(item.getThumbnailPreview()));
             orderMapper.insertOrderItem(orderVo.getOid(), item);
         }
+
+        // 2-1. 판매량 증가 (주문아이템 1줄당 +1)
+        if (items != null && !items.isEmpty()) {
+            for (OrderItemsVo item : items) {
+                productService.updateProductSales(item.getPid());
+            }
+        }
+
 
         // 3. 적립금 차감
         if (orderVo.getUsedCredit() > 0) {
@@ -65,6 +82,40 @@ public class OrderService {
             usedCredit.setOid(orderVo.getOid());
 
             creditService.insertCreditHistory(usedCredit);
+        }
+    }
+
+    private void applyCustomFrameFiles(OrderVo orderVo, List<MultipartFile> customFrameFiles, List<MultipartFile> customFramePreviewFiles) {
+        if (orderVo == null || orderVo.getItems() == null || orderVo.getItems().isEmpty()) return;
+
+        int fileIndex = 0;
+        int previewFileIndex = 0;
+        for (OrderItemsVo item : orderVo.getItems()) {
+            if (!"customFrames".equals(item.getCategory())) continue;
+
+            MultipartFile file = null;
+            if (customFrameFiles != null && fileIndex < customFrameFiles.size()) {
+                file = customFrameFiles.get(fileIndex++);
+            }
+            MultipartFile previewFile = null;
+            if (customFramePreviewFiles != null && previewFileIndex < customFramePreviewFiles.size()) {
+                previewFile = customFramePreviewFiles.get(previewFileIndex++);
+            }
+
+            if (file != null && !file.isEmpty()) {
+                try {
+                    String imageUrl = imageUtil.saveImage(file, "customFrames");
+                    String previewUrl = (previewFile != null && !previewFile.isEmpty())
+                        ? imageUtil.saveImage(previewFile, "customFrames")
+                        : imageUrl;
+
+                    // 주문 확정 시점에 저장된 URL 반영 (원본/미니 썸네일 분리)
+                    item.setThumbnail(imageUrl);
+                    item.setThumbnailPreview(previewUrl);
+                } catch (IOException e) {
+                    throw new IllegalStateException("맞춤액자 이미지 저장 실패", e);
+                }
+            }
         }
     }
 
@@ -293,6 +344,26 @@ public class OrderService {
         }
     }
 
+    /** 맞춤액자: 배송완료 후 30일 경과한 150px 썸네일 자동 삭제 */
+    @Scheduled(cron = "0 0 4 * * *")
+    @Transactional
+    public void cleanupCustomFramePreviewThumbnails() {
+        List<OrderItemsVo> rows = orderMapper.selectCustomFrameStalePreviewItems();
+        if (rows == null || rows.isEmpty()) {
+            return;
+        }
+        for (OrderItemsVo row : rows) {
+            try {
+                if (row.getThumbnailPreview() != null && !row.getThumbnailPreview().isBlank()) {
+                    imageUtil.deleteImage(row.getThumbnailPreview());
+                }
+                orderMapper.clearThumbnailPreview(row.getItemId());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     // 주문 완료시 문자 발송
     public void sendAdminOrderPaidSms(Long oid, String triggerLabel) {
         if (!adminNotifyEnabled || oid == null) return;
@@ -336,6 +407,35 @@ public class OrderService {
             .forEach(out::add);
         
         return out;
+    }
+
+    private String normalizeBase64ImageUrlIfNeeded(String maybeBase64DataUrl) {
+        if (maybeBase64DataUrl == null || !maybeBase64DataUrl.startsWith("data:image")) {
+            return maybeBase64DataUrl;
+        }
+
+        int comma = maybeBase64DataUrl.indexOf(',');
+        if (comma < 0) {
+            return maybeBase64DataUrl;
+        }
+
+        String metadata = maybeBase64DataUrl.substring(0, comma);
+        String base64Data = maybeBase64DataUrl.substring(comma + 1);
+
+        String extension = "jpg";
+        if (metadata.contains("png")) {
+            extension = "png";
+        } else if (metadata.contains("jpeg") || metadata.contains("jpg")) {
+            extension = "jpg";
+        } else if (metadata.contains("webp")) {
+            extension = "webp";
+        }
+
+        try {
+            return imageUtil.saveBase64Image(base64Data, extension, "customFrames");
+        } catch (IOException e) {
+            throw new IllegalStateException("맞춤액자 이미지 저장 실패", e);
+        }
     }
 
     private String nvl(String value, String fallback) {

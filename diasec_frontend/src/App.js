@@ -97,53 +97,215 @@ import {
 } from './utils/navigationReload';
 
 const SEO_SITE_ORIGIN = 'https://diasec.co.kr';
+const SEO_DEFAULT_OG_IMAGE = `${SEO_SITE_ORIGIN}/icon.png`;
+const SEO_PROMO_TITLE = ' · 20% 오픈할인';
+
+function getMainItemsSeoByType(type) {
+    switch (type) {
+        case 'masterPiece':
+            return {
+                title: `명화 | 디아섹코리아${SEO_PROMO_TITLE}`,
+                description:
+                    '명화·고전 회화를 고해상 디아섹 액자로 제작합니다. 작품에 맞는 사이즈와 마감으로 갤러리 수준의 인테리어를 완성해 보세요.',
+            };
+        case 'koreanPainting':
+            return {
+                title: `동양화 | 디아섹코리아${SEO_PROMO_TITLE}`,
+                description:
+                    '민화·수묵·동양풍 작품을 위한 디아섹 액자. 선명한 발색과 깊이 있는 표현을 살리는 맞춤 제작 서비스입니다.',
+            };
+        case 'photoIllustration':
+            return {
+                title: `사진·일러스트 | 디아섹코리아${SEO_PROMO_TITLE}`,
+                description:
+                    '스냅·일러스트·디지털 아트까지 사진과 그래픽 작품용 디아섹 액자. 출력 품질과 보존성에 최적화된 프리미엄 액자입니다.',
+            };
+        case 'fengShui':
+            return {
+                title: `풍수그림 | 디아섹코리아${SEO_PROMO_TITLE}`,
+                description:
+                    '풍수 인테리어용 그림을 디아섹 액자로 제작합니다. 공간에 맞는 사이즈와 마감으로 맞춤 주문이 가능합니다.',
+            };
+        case 'authorCollection':
+            return {
+                title: `작가 컬렉션 | 디아섹코리아${SEO_PROMO_TITLE}`,
+                description:
+                    '작가별 컬렉션 작품을 디아섹 액자로 만나보세요. 고해상 프린트와 아크릴 마감으로 작품을 오래 보존합니다.',
+            };
+        default:
+            return {
+                title: `디아섹코리아${SEO_PROMO_TITLE}`,
+                description:
+                    '디아섹코리아에서 디아섹 액자와 맞춤 액자를 만나보세요. 작품과 사진에 맞춘 고급 액자 제작 서비스를 제공합니다.',
+            };
+    }
+}
+
+const CUSTOM_FRAME_PRESET_SEO_MAP = {
+    wedding: {
+        title: '웨딩사진 맞춤 디아섹 액자 | 디아섹코리아',
+        description:
+            '웨딩 스냅·본식 사진을 프리미엄 디아섹 액자로 제작합니다. 사이즈·마감 맞춤 주문이 가능합니다.',
+    },
+    family: {
+        title: '가족사진 맞춤 디아섹 액자 | 디아섹코리아',
+        description:
+            '가족 단체사진·기념 촬영을 고광택·무광 디아섹 액자로 오래 보존하세요.',
+    },
+    pet: {
+        title: '반려동물 사진 디아섹 액자 | 디아섹코리아',
+        description:
+            '반려동물 프로필·스튜디오 컷을 선명한 디아섹 액자로 맞춤 제작합니다.',
+    },
+    baby: {
+        title: '아기 성장사진 디아섹 액자 | 디아섹코리아',
+        description:
+            '백일·돌·성장 기록 사진을 아크릴 디아섹 액자로 인테리어용으로 제작합니다.',
+    },
+    profile: {
+        title: '프로필·증명사진 맞춤 액자 | 디아섹코리아',
+        description:
+            '프로필·증명 촬영 이미지를 깔끔한 디아섹 액자로 완성합니다.',
+    },
+    store: {
+        title: '매장·사무실 인테리어용 디아섹 액자 | 디아섹코리아',
+        description: '매장·카페·사무실 벽면용 대형 디아섹 액자 맞춤 제작.',
+    },
+    game: {
+        title: '게임·굿즈 일러스트 디아섹 액자 | 디아섹코리아',
+        description:
+            '게임 일러스트·굿즈 아트를 컬렉션용 디아섹 액자로 제작합니다.',
+    },
+    anime: {
+        title: '애니·일러스트 디아섹 액자 | 디아섹코리아',
+        description:
+            '애니메이션·팬아트를 선명한 색감의 디아섹 액자로 보관·전시하세요.',
+    },
+    sight: {
+        title: '풍경·여행사진 디아섹 액자 | 디아섹코리아',
+        description:
+            '여행·야경·자연 풍경 사진을 거실용 디아섹 액자로 맞춤 제작합니다.',
+    },
+};
+
+function upsertMetaByName(name, content) {
+    let tag = document.querySelector(`meta[name="${name}"]`);
+    if (!tag) {
+        tag = document.createElement('meta');
+        tag.setAttribute('name', name);
+        document.head.appendChild(tag);
+    }
+    tag.setAttribute('content', content);
+}
+
+function upsertMetaProperty(property, content) {
+    let tag = document.querySelector(`meta[property="${property}"]`);
+    if (!tag) {
+        tag = document.createElement('meta');
+        tag.setAttribute('property', property);
+        document.head.appendChild(tag);
+    }
+    tag.setAttribute('content', content);
+}
+
+function upsertCanonical(href) {
+    let link = document.querySelector('link[rel="canonical"]');
+    if (!link) {
+        link = document.createElement('link');
+        link.setAttribute('rel', 'canonical');
+        document.head.appendChild(link);
+    }
+    link.setAttribute('href', href);
+}
+
+function applyPageSeo(seo) {
+    document.title = seo.title;
+    upsertMetaByName('description', seo.description);
+    upsertCanonical(seo.canonical);
+    upsertMetaProperty('og:type', 'website');
+    upsertMetaProperty('og:title', seo.title);
+    upsertMetaProperty('og:description', seo.description);
+    upsertMetaProperty('og:url', seo.canonical);
+    upsertMetaProperty('og:image', SEO_DEFAULT_OG_IMAGE);
+    upsertMetaProperty('og:locale', 'ko_KR');
+}
 
 function SeoMetaManager() {
     const location = useLocation();
 
     useEffect(() => {
-        // 카테고리·맞춤액자는 각 화면의 Helmet(og·canonical 포함)에 맡김 — 여기서 덮어쓰면 충돌함
-        if (location.pathname === '/main_Items' || location.pathname === '/customFrames') {
-            return;
-        }
-
         const origin = SEO_SITE_ORIGIN;
-        const currentUrl = `${origin}${location.pathname}${location.search}`;
+        const path = location.pathname;
+        const search = location.search;
+        const currentUrl = `${origin}${path}${search}`;
 
-        const promoTitle = ' · 30% 오픈할인';
+        const promoTitle = SEO_PROMO_TITLE;
         const seoDefaults = {
-            title: `디아섹코리아 | 30% 오픈할인`,
-            description: '디아섹코리아에서 디아섹 액자와 맞춤 액자를 만나보세요. 작품과 사진에 맞춘 고급 액자 제작 서비스를 제공합니다.',
-            canonical: `${origin}/`,
+            title: `디아섹코리아 | 20% 오픈할인`,
+            description:
+                '디아섹코리아에서 디아섹 액자와 맞춤 액자를 만나보세요. 작품과 사진에 맞춘 고급 액자 제작 서비스를 제공합니다.',
+            canonical: currentUrl,
         };
 
-        let seo = { ...seoDefaults, canonical: currentUrl };
+        let seo = { ...seoDefaults };
 
-        if (location.pathname === '/introduce') {
+        const params = new URLSearchParams(search);
+
+        if (path === '/main_Items') {
+            const type = params.get('type');
+            const author = params.get('author');
+            const base = getMainItemsSeoByType(type);
+            let title = base.title;
+            let description = base.description;
+            if (author) {
+                const name = decodeURIComponent(author);
+                title = `${name} | ${base.title}`;
+                description = `${name} 작품. ${base.description}`;
+            }
+            seo = { title, description, canonical: currentUrl };
+        } else if (path === '/customFrames') {
+            const presetKey = params.get('preset');
+            const baseTitle = `맞춤액자·사진보정 | 디아섹코리아${promoTitle}`;
+            const baseDesc =
+                '맞춤 디아섹 액자 주문과 전문 사진보정. 이미지 업로드 후 사이즈·마감을 선택하고 웨딩·가족·반려 등 프리셋으로 빠르게 주문할 수 있습니다.';
+            const preset = presetKey ? CUSTOM_FRAME_PRESET_SEO_MAP[presetKey] : null;
+            if (preset) {
+                seo = {
+                    title: preset.title,
+                    description: preset.description,
+                    canonical: `${origin}/customFrames?preset=${encodeURIComponent(presetKey)}`,
+                };
+            } else {
+                seo = {
+                    title: baseTitle,
+                    description: baseDesc,
+                    canonical: `${origin}/customFrames`,
+                };
+            }
+        } else if (path === '/introduce') {
             seo = {
                 title: `디아섹 액자 소개 | 디아섹코리아${promoTitle}`,
-                description: '디아섹코리아의 디아섹 액자를 소개합니다. 선명한 발색과 고급스러운 마감의 아크릴 액자를 확인해보세요.',
+                description:
+                    '디아섹코리아의 디아섹 액자를 소개합니다. 선명한 발색과 고급스러운 마감의 아크릴 액자를 확인해보세요.',
                 canonical: `${origin}/introduce`,
+            };
+        } else if (path === '/main_CompanyProfile') {
+            seo = {
+                title: `회사소개 | 디아섹코리아${promoTitle}`,
+                description:
+                    '디아섹코리아 회사 소개. 디아섹과 프리미엄 아크릴 액자 제작 서비스, 브랜드 스토리를 확인하세요.',
+                canonical: `${origin}/main_CompanyProfile`,
+            };
+        } else if (path === '/mainEvent') {
+            seo = {
+                title: `이벤트 | 디아섹코리아${promoTitle}`,
+                description:
+                    '디아섹코리아 진행 중인 할인·프로모션 이벤트를 한눈에 보세요. 액자·맞춤 제작 혜택을 놓치지 마세요.',
+                canonical: `${origin}/mainEvent`,
             };
         }
 
-        document.title = seo.title;
-
-        let descriptionTag = document.querySelector('meta[name="description"]');
-        if (!descriptionTag) {
-            descriptionTag = document.createElement('meta');
-            descriptionTag.setAttribute('name', 'description');
-            document.head.appendChild(descriptionTag);
-        }
-        descriptionTag.setAttribute('content', seo.description);
-
-        let canonicalTag = document.querySelector('link[rel="canonical"]');
-        if (!canonicalTag) {
-            canonicalTag = document.createElement('link');
-            canonicalTag.setAttribute('rel', 'canonical');
-            document.head.appendChild(canonicalTag);
-        }
-        canonicalTag.setAttribute('href', seo.canonical);
+        applyPageSeo(seo);
     }, [location.pathname, location.search]);
 
     return null;
@@ -171,6 +333,7 @@ function ScrollToTop() {
 function Layout() {
     const location = useLocation();
     const path = location.pathname;
+    const API = process.env.REACT_APP_API_BASE;
     const isItems = location.pathname === '/' || location.pathname === '/main_Items_Clock';
     const isMain = location.pathname === '/';
 
@@ -186,6 +349,11 @@ function Layout() {
     const navigate = useNavigate();
     const { setMember } = useMember();
     // 깃 테스트 완료
+
+    useEffect(() => {
+        axios.post(`${API}/visit/track`, {}, { withCredentials: true })
+            .catch(() => {});
+    }, [API]);
 
     useEffect(() => {
         const handler = async (e) => {

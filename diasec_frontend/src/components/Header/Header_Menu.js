@@ -15,6 +15,7 @@ import custom6 from '../../assets/dropDownMenu/customFrame/c6.jpg';
 import custom7 from '../../assets/dropDownMenu/customFrame/c7.jpg'; 
 import custom8 from '../../assets/dropDownMenu/customFrame/c8.jpg'; 
 import custom9 from '../../assets/dropDownMenu/customFrame/c9.jpg'; 
+import custom10 from '../../assets/dropDownMenu/customFrame/c10.jpg'; 
 
 const Header_Menu = () => {
     const API = process.env.REACT_APP_API_BASE;
@@ -159,11 +160,8 @@ const Header_Menu = () => {
             { label: '풍경', img:custom9, link:'/customFrames?preset=sight'},
             { label: '애니메이션', img:custom8, link:'/customFrames?preset=anime'},
             { label: '게임', img:custom7, link:'/customFrames?preset=game'},
-            { label: '매장 인테리어', img:custom6, link:'/customFrames?preset=store'}],
-            
-
-            
-            
+            { label: '매장 인테리어', img:custom6, link:'/customFrames?preset=store'},
+            { label: '엔터테인먼트', img:custom10, link:'/customFrames?preset=entertainment'}],
         companyOrder: [], 
         registerAuthor: [], 
         event: []

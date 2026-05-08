@@ -20,6 +20,9 @@ public class OrderItemsVo {
     private int finalPrice;
     private String size;
     private String thumbnail;
+    private String thumbnailPreview;
+    /** 맞춤액자 배송완료 시각 (썸네일 30일 자동삭제 기준) */
+    private String customFrameDeliveredAt;
     private String orderStatus;
     private String trackingNumber;
     private String trackingCompany;
