@@ -48,6 +48,21 @@
         )
     </insert>
 
+    <update id="updateOrderShippingInfo" parameterType="OrderVo">
+        UPDATE orders SET
+            orderer_name = #{ordererName},
+            orderer_phone = #{ordererPhone},
+            email = #{email},
+            recipient = #{recipient},
+            recipient_phone = #{recipientPhone},
+            postcode = #{postcode},
+            address = #{address},
+            detail_address = #{detailAddress},
+            delivery_message = #{deliveryMessage},
+            buyer_request = #{buyerRequest}
+        WHERE oid = #{oid}
+    </update>
+
     <!-- order_items 테이블에 주문 아이템 목록 저장 -->
     <insert id="insertOrderItem" parameterType="map">
         INSERT INTO order_items (

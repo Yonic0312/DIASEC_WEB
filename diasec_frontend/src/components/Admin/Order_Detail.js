@@ -2,6 +2,7 @@ import { useRef, useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import axios from 'axios';
+import { resolveTrackingLookupUrl } from '../../utils/deliveryTrackingUrls';
 import thumbCustom from '../../assets/CustomFrames/customFrames.png';
 
 const Order_Detail = () => {
@@ -21,7 +22,7 @@ const Order_Detail = () => {
     const [leaseEnd, setLeaseEnd] = useState('');
 
     // 모달 입력 필드 상태 정의
-    const [trackingCompany, setTrackingCompany] = useState('');
+    const [trackingCompany, setTrackingCompany] = useState('한진택배');
     const [trackingNumber, setTrackingNumber] = useState('');
     const [bankName, setBankName] = useState('');
     const [accountNumber, setAccountNumber] = useState('');
@@ -219,10 +220,67 @@ const Order_Detail = () => {
             .catch(err => console.error("주문 상세 불러오기 실패", err));
     }
 
+    const [shippingDraft, setShippingDraft] = useState({
+        ordererName: '',
+        ordererPhone: '',
+        email: '',
+        recipient: '',
+        recipientPhone: '',
+        postcode: '',
+        address: '',
+        detailAddress: '',
+        deliveryMessage: '',
+        buyerRequest: '',
+    });
+    const [shippingSaving, setShippingSaving] = useState(false);
+
+    useEffect(() => {
+        if (!order) return;
+        setShippingDraft({
+            ordererName: order.ordererName ?? '',
+            ordererPhone: order.ordererPhone ?? '',
+            email: order.email ?? '',
+            recipient: order.recipient ?? '',
+            recipientPhone: order.recipientPhone ?? '',
+            postcode: order.postcode ?? '',
+            address: order.address ?? '',
+            detailAddress: order.detailAddress ?? '',
+            deliveryMessage: order.deliveryMessage ?? '',
+            buyerRequest: order.buyerRequest ?? '',
+        });
+    }, [order]);
+
     if (!order) return <div className="text-center py-20 text-gray-500">로딩 중...</div>;
 
     const item = order.items[0];
     const status = item?.orderStatus || '';
+
+    const handleSaveShipping = async () => {
+        setShippingSaving(true);
+        try {
+            const res = await fetch(`${API}/admin/order/update-shipping`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    itemId: item.itemId,
+                    ...shippingDraft,
+                }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                toast.success('배송지 정보가 저장되었습니다.');
+                reload();
+            } else {
+                toast.error(data.message || '저장에 실패했습니다.');
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error('서버 오류');
+        } finally {
+            setShippingSaving(false);
+        }
+    };
 
     const steps = ['입금대기', '결제완료', '배송준비중', '배송중', '배송완료'];
     const currentStepIndex = steps.indexOf(order.items[0].orderStatus);
@@ -752,27 +810,30 @@ const Order_Detail = () => {
                         <button 
                             className="px-2 py-1 text-[11px] font-medium border bg-orange-500 text-white border-white rounded-xl hover:text-gray-300  transition" 
                             onClick={() => {
-                                    setTrackingCompany(trackingCompany || '');
-                                    setTrackingNumber(trackingNumber || '');
-                                    setBankName(bankName || '');
-                                    setAccountNumber(accountNumber || '');
-                                    setAccountHolder(accountHolder || '');
-
-                                    // 직접입력 값이면 customCompany로 설정
+                                    const item = order.items[0];
+                                    const existingCompany = (item.trackingCompany || '').trim();
                                     const knownCompanies = [
                                         "CJ대한통운", "롯데택배", "한진택배", "우체국택배",
                                         "쿠팡로지스틱스", "로젠택배", "경동택배"
                                     ];
-                                    if (!knownCompanies.includes(trackingCompany)) {
+                                    if (existingCompany && knownCompanies.includes(existingCompany)) {
+                                        setTrackingCompany(existingCompany);
+                                        setCustomCompany('');
+                                    } else if (existingCompany) {
                                         setTrackingCompany('기타');
-                                        setCustomCompany(trackingCompany || '');
+                                        setCustomCompany(existingCompany);
                                     } else {
+                                        setTrackingCompany('한진택배');
                                         setCustomCompany('');
                                     }
+                                    setTrackingNumber((item.trackingNumber || '').trim());
+                                    setBankName(bankName || '');
+                                    setAccountNumber(accountNumber || '');
+                                    setAccountHolder(accountHolder || '');
 
                                     setShowModal(true);
                             }}> 
-                            배송정보 수정
+                            운송장 정보 수정
                         </button>
 
                         {order.items[0].category === 'lease' && (
@@ -1106,14 +1167,22 @@ const Order_Detail = () => {
                         </div>
 
                         {/* 운송장 표시 */}
-                        {order.items[0].trackingNumber && (
+                        {order.items[0].trackingNumber && (() => {
+                            const trackingUrl = resolveTrackingLookupUrl(
+                                order.items[0].trackingCompany,
+                                order.items[0].trackingNumber
+                            );
+                            return (
                             <div className="mt-6 border rounded-lg p-4 bg-gray-50 text-sm text-gray-800">
                                 <div className="flex items-center justify-between mb-2">
                                     <span className="font-semibold text-gray-700">운송장 정보</span>
-                                    <a href={`https://st.sweettracker.co.kr/#/`}
+                                    <a
+                                        href={trackingUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
                                         className="text-blue-600 hover:underline text-xs"
                                     >
-                                        배송조회 바로가기 
+                                        배송조회 바로가기
                                     </a>
                                 </div>
                                 <div className="text-base font-bold text-gray-900">
@@ -1123,7 +1192,8 @@ const Order_Detail = () => {
                                     ※ 택배사 : {order.items[0].trackingCompany}
                                 </div>
                             </div>
-                        )}
+                            );
+                        })()}
                     </div>
                 )}
             </div>
@@ -1172,10 +1242,16 @@ const Order_Detail = () => {
                 <h3 className="print-section-title font-semibold text-lg">배송지 정보</h3>
                 <div className="print-grid-2 text-sm text-gray-700">
                     <div>
-                        <span className="font-medium">수령인:</span> {order.ordererName}
+                        <span className="font-medium">주문자명:</span> {order.ordererName}
                     </div>
                     <div>
-                        <span className="font-medium">연락처:</span> {order.ordererPhone}
+                        <span className="font-medium">주문자 연락처:</span> {order.ordererPhone}
+                    </div>
+                    <div>
+                        <span className="font-medium">수령인:</span> {order.recipient || '—'}
+                    </div>
+                    <div>
+                        <span className="font-medium">수령인 연락처:</span> {order.recipientPhone || '—'}
                     </div>
                     <div>
                         <span className="font-medium">이메일:</span> {order.email}
@@ -1184,58 +1260,144 @@ const Order_Detail = () => {
                         <span className="font-medium">우편번호:</span> {order.postcode}
                     </div>
 
-                    <div className="sm:col-span-2">
-                        <span className="font-medium">주소:</span> {order.address}<br />
-                        {order.deliveryAddress} ({order.postcode})
+                    <div>
+                        <span className="font-medium">주소:</span> {order.address}
+                            <>
+                                <br />
+                                {order.detailAddress}
+                            </>
                     </div>
 
-                    {order.deliveryRequest && (
-                        <div className="sm:col-span-2">
-                            <span className="font-medium">배송메모:</span> {order.deliveryRequest}
+                    {(order.deliveryMessage || order.buyerRequest) && (
+                        <div className="sm:col-span-2 space-y-1">
+                            {order.deliveryMessage ? (
+                                <div>
+                                    <span className="font-medium">배송 메시지:</span> {order.deliveryMessage}
+                                </div>
+                            ) : null}
+                            {order.buyerRequest ? (
+                                <div>
+                                    <span className="font-medium">구매자 요청:</span> {order.buyerRequest}
+                                </div>
+                            ) : null}
                         </div>
                     )}
                 </div>
-            </div>
 
-            {/* <div className="print-section">
-                <h3 className="print-section-title font-semibold text-lg">작업 확인란</h3>
-
-                <div className="print-check-row text-sm">
-                    <div className="print-check-item">□ 입금 확인</div>
-                    <div className="print-check-item">□ 제작 시작</div>
-                    <div className="print-check-item">□ 제작 완료</div>
-                    <div className="print-check-item">□ 포장 완료</div>
-                    <div className="print-check-item">□ 출고 완료</div>
+                <div className="no-print mt-4 border border-dashed border-gray-300 rounded-lg p-4 bg-gray-50">
+                    <h4 className="text-sm font-semibold text-gray-800 mb-3">배송지 정보 수정 (관리자)</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                        <label className="flex flex-col gap-1">
+                            <span className="font-medium text-gray-700">주문자명</span>
+                            <input
+                                type="text"
+                                className="border border-gray-300 rounded px-2 py-1.5 w-full"
+                                value={shippingDraft.ordererName}
+                                onChange={(e) => setShippingDraft((d) => ({ ...d, ordererName: e.target.value }))}
+                            />
+                        </label>
+                        <label className="flex flex-col gap-1">
+                            <span className="font-medium text-gray-700">주문자 연락처</span>
+                            <input
+                                type="text"
+                                className="border border-gray-300 rounded px-2 py-1.5 w-full"
+                                value={shippingDraft.ordererPhone}
+                                onChange={(e) => setShippingDraft((d) => ({ ...d, ordererPhone: e.target.value }))}
+                            />
+                        </label>
+                        <label className="flex flex-col gap-1">
+                            <span className="font-medium text-gray-700">수령인</span>
+                            <input
+                                type="text"
+                                className="border border-gray-300 rounded px-2 py-1.5 w-full"
+                                value={shippingDraft.recipient}
+                                onChange={(e) => setShippingDraft((d) => ({ ...d, recipient: e.target.value }))}
+                            />
+                        </label>
+                        <label className="flex flex-col gap-1">
+                            <span className="font-medium text-gray-700">수령인 연락처</span>
+                            <input
+                                type="text"
+                                className="border border-gray-300 rounded px-2 py-1.5 w-full"
+                                value={shippingDraft.recipientPhone}
+                                onChange={(e) => setShippingDraft((d) => ({ ...d, recipientPhone: e.target.value }))}
+                            />
+                        </label>
+                        <label className="sm:col-span-2 flex flex-col gap-1">
+                            <span className="font-medium text-gray-700">이메일</span>
+                            <input
+                                type="email"
+                                className="border border-gray-300 rounded px-2 py-1.5 w-full"
+                                value={shippingDraft.email}
+                                onChange={(e) => setShippingDraft((d) => ({ ...d, email: e.target.value }))}
+                            />
+                        </label>
+                        <label className="flex flex-col gap-1">
+                            <span className="font-medium text-gray-700">우편번호</span>
+                            <input
+                                type="text"
+                                className="border border-gray-300 rounded px-2 py-1.5 w-full"
+                                value={shippingDraft.postcode}
+                                onChange={(e) => setShippingDraft((d) => ({ ...d, postcode: e.target.value }))}
+                            />
+                        </label>
+                        <label className="sm:col-span-2 flex flex-col gap-1">
+                            <span className="font-medium text-gray-700">기본 주소</span>
+                            <input
+                                type="text"
+                                className="border border-gray-300 rounded px-2 py-1.5 w-full"
+                                value={shippingDraft.address}
+                                onChange={(e) => setShippingDraft((d) => ({ ...d, address: e.target.value }))}
+                            />
+                        </label>
+                        <label className="sm:col-span-2 flex flex-col gap-1">
+                            <span className="font-medium text-gray-700">상세 주소</span>
+                            <input
+                                type="text"
+                                className="border border-gray-300 rounded px-2 py-1.5 w-full"
+                                value={shippingDraft.detailAddress}
+                                onChange={(e) => setShippingDraft((d) => ({ ...d, detailAddress: e.target.value }))}
+                            />
+                        </label>
+                        <label className="sm:col-span-2 flex flex-col gap-1">
+                            <span className="font-medium text-gray-700">배송 메시지</span>
+                            <input
+                                type="text"
+                                className="border border-gray-300 rounded px-2 py-1.5 w-full"
+                                value={shippingDraft.deliveryMessage}
+                                onChange={(e) => setShippingDraft((d) => ({ ...d, deliveryMessage: e.target.value }))}
+                            />
+                        </label>
+                        <label className="sm:col-span-2 flex flex-col gap-1">
+                            <span className="font-medium text-gray-700">구매자 요청사항</span>
+                            <input
+                                type="text"
+                                className="border border-gray-300 rounded px-2 py-1.5 w-full"
+                                value={shippingDraft.buyerRequest}
+                                onChange={(e) => setShippingDraft((d) => ({ ...d, buyerRequest: e.target.value }))}
+                            />
+                        </label>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={handleSaveShipping}
+                        disabled={shippingSaving}
+                        className="mt-4 w-full sm:w-auto px-6 py-2 rounded-lg bg-[#D0AC88] text-white text-sm font-medium hover:opacity-90 disabled:opacity-50"
+                    >
+                        {shippingSaving ? '저장 중…' : '배송지 정보 저장'}
+                    </button>
                 </div>
-
-                <div className="mt-4 text-sm">
-                    <div>
-                        <span className="print-label">운송장번호:</span>
-                    </div>
-
-                    <div className="mb-2">
-                        <span className="print-label">작업자</span>
-                    </div>    
-                    <div>
-                        <span className="print-label">특이사항:</span>
-                        <div className="print-note-box"></div>
-                    </div>
-                </div> 
-            </div> */}
+            </div>
 
             {/* 배송 페이지 모달창 */}
             {showModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
                     <div className='bg-white p-6 rounded-lg w-[420px] shadow-lg relative'>
-                        <h3 className='"text-lg font-bold mb-4'>주문 상세 정보</h3>
-                        
+                        <h3 className='"text-lg font-bold mb-4'>운송장 정보</h3>
+                       
                         {/* 송장 정보 */}
                         <div className="mb-6 border p-4 rounded bg-gray-50">
-                            <h4 className='text-sm font-semibold mb-2 text-gray-700'>배송 정보</h4>
-                            <p className="text-xs text-gray-500 mb-2">
-                                (<span className='font-medium'>배송중</span>, <span className='font-medium'>교환배송중</span> 상태일 때 입력하는 항목입니다)
-                            </p>
-                            <label className="block text-sm font-medium mt-2">택배사</label>
+                            <label className="block text-sm font-medium">택배사</label>
                             <select className="border px-1 py-1 w-full text-sm"
                                 value={trackingCompany}
                                 onChange={(e) => setTrackingCompany(e.target.value)}>
@@ -1252,11 +1414,14 @@ const Order_Detail = () => {
 
                             {trackingCompany === '기타' && (
                                 <input type="text" value = {customCompany} onChange={e => setCustomCompany(e.target.value)}
-                                    className="border px-2 py-1 w-full text-sm" placeholder="택배사를 입력하세요." />
+                                    className="border mt-2 px-2 py-1 w-full text-sm" placeholder="택배사를 입력하세요." />
                             )}
 
                             <label className="block text-sm font-medium mt-2">운송장번호</label>
                             <input type="text" value={trackingNumber} onChange={e => setTrackingNumber(e.target.value)} className='border px-2 py-1 w-full text-sm'></input>
+                            <p className="text-xs text-gray-500 mt-2">
+                                (<span className='font-medium'>배송중</span>, <span className='font-medium'>교환배송중</span> 상태일 때 입력하는 항목입니다)
+                            </p>
                         </div>
                         
                         {/* 환불 정보 */}

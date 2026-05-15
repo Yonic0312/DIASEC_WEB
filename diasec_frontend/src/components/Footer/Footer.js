@@ -80,7 +80,7 @@ const Footer = () => {
                     >
                         개인정보 취급방침
                     </button>
-                    |
+                    {/* |
                     <button
                         onClick={() => navigate('')}
                     >
@@ -91,7 +91,7 @@ const Footer = () => {
                         onClick={() => navigate('')}
                     >
                         제휴문의
-                    </button>
+                    </button> */}
                 </div>
 
                 <div className="flex md:text-[15px] text-[12px]  mt-[6px]">

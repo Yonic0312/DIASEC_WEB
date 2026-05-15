@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { resolveTrackingLookupUrl } from '../../../utils/deliveryTrackingUrls';
 import thumbCustom from '../../../assets/CustomFrames/customFrames.png';
 
 const OrderTracking = () => {
@@ -246,14 +247,22 @@ const OrderTracking = () => {
                     </div>
 
                     {/* 운송장 표시 */}
-                    {item.items[0].trackingNumber && (
+                    {item.items[0].trackingNumber && (() => {
+                        const trackingUrl = resolveTrackingLookupUrl(
+                            item.items[0].trackingCompany,
+                            item.items[0].trackingNumber
+                        );
+                        return (
                         <div 
                             className="
                                 md:text-lg sm:text-[clamp(16px,2.346vw,18px)] text-[clamp(14px,2.503vw,16px)]
                                 mt-6 border rounded-lg p-4 bg-gray-50 text-gray-800">
                             <div className="flex items-center justify-between mb-2">
                                 <span className="font-semibold text-gray-700">운송장 정보</span>
-                                <a href={`https://www.hanjin.com/kor/CMS/DeliveryMgr/WaybillSch.do?mCode=MN038`}
+                                <a
+                                    href={trackingUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
                                     className="
                                         md:text-sm text-[clamp(11px,1.8252vw,14px)]
                                     text-blue-600 hover:underline"
@@ -274,7 +283,8 @@ const OrderTracking = () => {
                                 ※ 택배사 : {item.items[0].trackingCompany}
                             </div>
                         </div>
-                    )}
+                        );
+                    })()}
                     {item.items[0].orderStatus === '입금대기' && (
                         <div 
                             className="

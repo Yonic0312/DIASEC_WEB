@@ -453,6 +453,8 @@ const Main_Items = () => {
 
     // 상품 갯수 가져오기
     const [totalCount, setTotalCount] = useState(0);
+    const [titleFilterCount, setTitleFilterCount] = useState(null);
+    const [titleFilterLoading, setTitleFilterLoading] = useState(false);
 
     useEffect(() => {
         if (!type) return;
@@ -464,6 +466,47 @@ const Main_Items = () => {
         .then(res => setTotalCount(res.data ?? 0))
         .catch(() => setTotalCount(0));
     }, [type, author]);
+
+    /** 상품명 검색 시 DB 기준 총 개수 (디바운스) */
+    useEffect(() => {
+        if (!type) return;
+        const q = titleSearch.trim();
+        if (!q) {
+            setTitleFilterCount(null);
+            setTitleFilterLoading(false);
+            return;
+        }
+
+        let cancelled = false;
+        setTitleFilterLoading(true);
+
+        const t = setTimeout(() => {
+            if (cancelled) return;
+            const params = { category: type, title: q };
+            if (author) params.author = decodeURIComponent(author);
+
+            axios
+                .get(`${API}/product/count/author`, { params })
+                .then((res) => {
+                    if (cancelled) return;
+                    setTitleFilterCount(res.data ?? 0);
+                })
+                .catch(() => {
+                    if (cancelled) return;
+                    setTitleFilterCount(null);
+                })
+                .finally(() => {
+                    if (cancelled) return;
+                    setTitleFilterLoading(false);
+                });
+        }, 300);
+
+        return () => {
+            cancelled = true;
+            clearTimeout(t);
+            setTitleFilterLoading(false);
+        };
+    }, [type, author, titleSearch, API]);
 
     useEffect(() => {
         if (prevAuthorForSearchResetRef.current !== author) {
@@ -808,6 +851,15 @@ const Main_Items = () => {
         });
     }, [itemPriceMap, displayProducts]);
 
+    const hasTitleSearch = titleSearch.trim().length > 0;
+    const productCountText = !hasTitleSearch
+        ? totalCount.toLocaleString()
+        : titleFilterLoading
+            ? '…'
+            : titleFilterCount != null
+                ? titleFilterCount.toLocaleString()
+                : '—';
+
     return (
         <div>
             {/* [공통] 페이지 제목 */}
@@ -957,7 +1009,7 @@ const Main_Items = () => {
                             text-[15px] text-[#CDC9C3]
                         "
                     > 
-                        상품 <span className="text-[#555555]">{totalCount}</span>개
+                        상품 <span className="text-[#555555]">{productCountText}</span>개
                     </div>
                     
                     <div className='flex md:justify-end justify-center'>
@@ -1040,7 +1092,7 @@ const Main_Items = () => {
                                 text-[15px] text-[#888]
                             "
                         > 
-                            상품 <span className="text-[#555555]">{totalCount}</span>개
+                            상품 <span className="text-[#555555]">{productCountText}</span>개
                         </div>
                         
                         <div className='flex md:justify-end justify-center'>

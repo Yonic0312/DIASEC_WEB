@@ -90,10 +90,11 @@ public interface ProductMapper {
     // 특정 컬렉션의 아이템 목록 조회
     List<String> selectCollectionItemsByCollectionId(@Param("collectionId") int collectionId);
 
-    // 상품 개수 가져오기
+    // 상품 개수 가져오기 (titleKeyword 생략 시 기존과 동일)
     int countProductByCategoryAndAuthor(
         @Param("category") String category,
-        @Param("author") String author
+        @Param("author") String author,
+        @Param("titleKeyword") String titleKeyword
     );
 
     void updateProductsByLabel(

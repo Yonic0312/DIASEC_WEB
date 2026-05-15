@@ -1,30 +1,13 @@
-import { useContext, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom'
-import { MemberContext } from '../../context/MemberContext'
 import axios from 'axios';
 
 const Admin_Sidebar = () => {
     const API = process.env.REACT_APP_API_BASE;
-    const { member } = useContext(MemberContext);
     const navigate = useNavigate();
 
-    const [ inquiryUnanswered,setInquiryUnanswered ] = useState(0);
-
-    const [inquiries, setInquiries] = useState([]);
-
-    const [pendingAuthorCount, setPendingAuthorCount] = useState(0);
-    const [pendingWorkCount, setPendingWorkCount] = useState(0);
-
+    const [inquiryUnanswered, setInquiryUnanswered] = useState(0);
     const [orderCounts, setOrderCounts] = useState({});
-
-    // 방문자 수
-    const [visitStats, setVisitStats] = useState({ today: 0, total: 0 });
-
-    useEffect(() => {
-        axios.get(`${API}/admin/visit/stats`, { withCredentials: true })
-            .then(res => setVisitStats(res.data || { today: 0, total: 0 }))
-            .catch(err => console.error('방문자 통계 불러오기 실패', err));
-    }, [API]);
 
     // 토글 상태
     const [openOrderStatus, setOpenOrderStatus] = useState(false);
@@ -52,13 +35,17 @@ const Admin_Sidebar = () => {
     const EXCLUDED_FROM_SIDEBAR_TOTAL = useMemo(
         () => new Set(['배송완료', '교환완료', '환불완료']),
         []
-    )
-    
-    const totalOrderCount = ORDER_STATUS_LIST.reduce(
-        (sum, s) => 
-            sum + 
-            (EXCLUDED_FROM_SIDEBAR_TOTAL.has(s) ? 0 : (orderCounts[s] || 0)),
-        0
+    );
+
+    const totalOrderCount = useMemo(
+        () =>
+            ORDER_STATUS_LIST.reduce(
+                (sum, s) =>
+                    sum +
+                    (EXCLUDED_FROM_SIDEBAR_TOTAL.has(s) ? 0 : (orderCounts[s] || 0)),
+                0
+            ),
+        [ORDER_STATUS_LIST, EXCLUDED_FROM_SIDEBAR_TOTAL, orderCounts]
     );
 
     // 주문 상태별 개수 불러오기
@@ -76,52 +63,26 @@ const Admin_Sidebar = () => {
         .catch(err => console.error("주문 상태 불러오기 실패", err));
     }, [API])
 
-    // 🔹 추가: 작가/작품 대기 카운트 로드
-    useEffect(() => {
-        // 1) 심사 대기 "작가 수"
-        axios.get(`${API}/author/pending-count`, { withCredentials: true })
-        .then(res => setPendingAuthorCount(res.data ?? 0))
-        .catch(err => console.error('author/pending-count 실패', err));
-
-        // 2) 심사 대기 "작품 수" 합계 (author 목록의 pending_count 합)
-        axios.get(`${API}/author/authors`, { withCredentials: true })
-        .then(res => {
-            const list = res.data || [];
-            const totalPendingWorks = list.reduce((sum, r) => sum + (r.pending_count ?? 0), 0);
-            setPendingWorkCount(totalPendingWorks);
-        })
-        .catch(err => console.error('author/authors 실패', err));
-    }, [API]);
-
     useEffect(() => {
         axios.get(`${API}/inquiry/unanswered`)
         .then(res => {
             setInquiryUnanswered(res.data);
         })
         .catch(err => console.error('inquiry/unanswered 불러오기 실패 : ' + err));
-    })
-
-    useEffect(() => {
-        axios.get(`${API}/biz/list`)
-            .then(res => {
-                setInquiries(res.data)
-                console.log(res.data);
-            })
-            .catch(err => console.error('불러오기 실패', err));
-    }, []);
+    }, [API]);
 
     return (
         <div className="flex flex-col items-start w-[200px] mr-4 gap-3 mb-20">
-            <button
-                onClick={() => navigate('/admin/insert_Product')}
-                className="text-2xl mb-7 cursor-pointer"
-            >
-                Admin Page
-            </button>
-
-            <div className="text-sm mb-3">
-                방문자수 : {visitStats.today} / {visitStats.total}
+            <div className="mb-6 w-full">
+                <button
+                    type="button"
+                    onClick={() => navigate('/admin_home')}
+                    className="text-2xl font-bold text-gray-900 cursor-pointer text-left hover:opacity-80 transition w-full"
+                >
+                    관리자 홈
+                </button>
             </div>
+
             <span className="text-lg font-bold">상품 관리</span>
             <button className="text-sm opacity-65" onClick={() => navigate('/admin/insert_Product')}>상품 등록하기</button>
             <button className="text-sm opacity-65" onClick={() => navigate('/admin_ProductManager')}>상품 수정</button>

@@ -226,7 +226,7 @@
         ORDER BY label ASC
     </select>
 
-    <!-- 상품 개수 가져오기 -->
+    <!-- 상품 개수 가져오기 (선택: 상품명 부분 일치, 대소문자 무시) -->
     <select id="countProductByCategoryAndAuthor" resultType="int">
         SELECT COUNT(*)
         FROM product
@@ -236,6 +236,9 @@
             </if>
             <if test="author != null and author !=''">
                 AND author = #{author}
+            </if>
+            <if test="titleKeyword != null and titleKeyword != ''">
+                AND LOWER(title) LIKE CONCAT('%', LOWER(#{titleKeyword}), '%')
             </if>
         </where>
     </select>

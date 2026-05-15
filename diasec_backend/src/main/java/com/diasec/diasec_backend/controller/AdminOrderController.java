@@ -19,6 +19,7 @@ import com.diasec.diasec_backend.dao.OrderMapper;
 import com.diasec.diasec_backend.service.AdminOrderService;
 import com.diasec.diasec_backend.service.OrderService;
 import com.diasec.diasec_backend.vo.OrderItemsVo;
+import com.diasec.diasec_backend.vo.OrderVo;
 
 import lombok.RequiredArgsConstructor;
 
@@ -87,6 +88,38 @@ public class AdminOrderController {
         return adminOrderService.updateOrderDetailWithNotification(
             itemId, trackingCompany, trackingNumber, bankName, accountNubmer, accountHolder
         );
+    }
+
+    /** 관리자: 배송지·주문자 연락처 등 orders 정보 수정 */
+    @PostMapping("/order/update-shipping")
+    public Map<String, Object> updateOrderShipping(@RequestBody Map<String, Object> body) {
+        try {
+            Long itemId = Long.valueOf(String.valueOf(body.get("itemId")));
+            OrderVo patch = new OrderVo();
+            patch.setOrdererName(strParam(body.get("ordererName")));
+            patch.setOrdererPhone(strParam(body.get("ordererPhone")));
+            patch.setEmail(strParam(body.get("email")));
+            patch.setRecipient(strParam(body.get("recipient")));
+            patch.setRecipientPhone(strParam(body.get("recipientPhone")));
+            patch.setPostcode(strParam(body.get("postcode")));
+            patch.setAddress(strParam(body.get("address")));
+            patch.setDetailAddress(strParam(body.get("detailAddress")));
+            patch.setDeliveryMessage(strParam(body.get("deliveryMessage")));
+            patch.setBuyerRequest(strParam(body.get("buyerRequest")));
+
+            boolean ok = orderService.updateOrderShippingByItemId(itemId, patch);
+            if (!ok) {
+                return Map.of("success", false, "message", "주문을 찾을 수 없거나 저장에 실패했습니다.");
+            }
+            return Map.of("success", true, "message", "");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Map.of("success", false, "message", e.getMessage() != null ? e.getMessage() : "오류");
+        }
+    }
+
+    private static String strParam(Object o) {
+        return o == null ? "" : String.valueOf(o).trim();
     }
 
     // 리스정보 수정

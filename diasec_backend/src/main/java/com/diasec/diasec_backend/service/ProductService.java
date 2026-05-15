@@ -145,7 +145,18 @@ public class ProductService {
 
     // 상품 개수 가져오기
     public int countProductsByCategoryAndAuthor(String category, String author) {
-        return productMapper.countProductByCategoryAndAuthor(category, author);
+        return countProductsByCategoryAndAuthor(category, author, null);
+    }
+
+    public int countProductsByCategoryAndAuthor(String category, String author, String titleKeyword) {
+        String kw = titleKeyword;
+        if (kw != null) {
+            kw = kw.trim();
+            if (kw.isEmpty()) {
+                kw = null;
+            }
+        }
+        return productMapper.countProductByCategoryAndAuthor(category, author, kw);
     }
 
     public Map<String, List<ProductVo>> searchAllByTitle(String q) {

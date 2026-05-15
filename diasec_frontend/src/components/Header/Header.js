@@ -241,13 +241,13 @@ const Header = () => {
                                 {/* 관리자 */}
                                 {member.role === 'ADMIN' && (
                                     <>
-                                        <button onClick={() => navigate('/admin/insert_Product')}>관리자페이지</button>
+                                        <button onClick={() => navigate('/admin_home')}>관리자페이지</button>
                                         <span className="opacity-15">|</span>
                                     </>
                                 )}
                                 <button onClick={handleLogout}>로그아웃</button>
                                 <span className="opacity-15">|</span>
-                                <button onClick={() => navigate('/orderList')}>마이페이지</button>
+                                <button onClick={() => navigate('/mypage')}>마이페이지</button>
                                 <span className="opacity-15">|</span>
                                 <button onClick={() => navigate('/cart')}>장바구니</button>
                             </>
@@ -323,8 +323,8 @@ const Header = () => {
                                     >
                                         후기게시판
                                     </button>
-
-                                    <button
+                                        
+                                    {/* <button
                                         type="button"
                                         onClick={() => { navigate("/supportMyInquiryList"); setSupportOpen(false);}}
                                         className="w-full text-left px-4 py-2 text-[13px] text-gray-700 bg-white hover:bg-[#ecd2af]/35 transition"
@@ -338,7 +338,7 @@ const Header = () => {
                                         className="w-full text-left px-4 py-2 text-[13px] text-gray-700 bg-white hover:bg-[#ecd2af]/35 transition"
                                     >
                                         업무제휴
-                                    </button>
+                                    </button> */}
                                 </div>      
                             </div>
                         </div>
@@ -477,7 +477,7 @@ const Header = () => {
                             {member.role === 'ADMIN' && (
                                 <li>
                                 <button
-                                    onClick={() => { navigate('/admin/insert_Product'); setDrawerOpen(false); }}
+                                    onClick={() => { navigate('/admin_home'); setDrawerOpen(false); }}
                                     className="flex items-center gap-2 w-full px-4 py-3 text-[14px] text-gray-700 hover:bg-gray-100 transition rounded-t-2xl"
                                 >
                                     <svg className="w-5 h-5 text-indigo-500" viewBox="0 0 24 24">

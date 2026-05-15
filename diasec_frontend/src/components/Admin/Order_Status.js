@@ -176,7 +176,11 @@ const Order_Status = () => {
         fengShui: '풍수',
         authorCollection: '작가',
         customFrames: '맞춤액자'
-    }
+    };
+
+    /** 맞춤액자: DB에 경로가 남아 있으면 서버 파일로 간주 (배송완료 시 원본 컬럼 NULL, 150px는 30일 후 NULL) */
+    const hasStoredImagePath = (v) =>
+        v != null && String(v).trim() !== '';
 
     // 상세 페이지로 넘어갈때 검색조건도 넘어감
     useEffect(() => {
@@ -415,7 +419,26 @@ const Order_Status = () => {
                                         <td className="p-3">{isSameOid ? '' : item.oid}</td>
                                         <td className="p-3">{isSameOid ? '' : item.id == '' ? '비회원' : item.id}</td>
                                         <td className="p-3">{categoryMap[item.category] || item.category}</td>
-                                        <td className={`p-3 text-black text-left`}>{item.title}</td>
+                                        <td className={`p-3 text-black flex justify-between`}>
+                                            <span className="align-middle">{item.title}</span>
+                                            {item.category === 'customFrames' && (() => {
+                                                const has150 = hasStoredImagePath(item.thumbnailPreview);
+                                                const hasOrig = hasStoredImagePath(item.thumbnail);
+                                                return (
+                                                    <span
+                                                        className="ml-2 inline-flex items-center gap-1.5 text-xs align-middle select-none"
+                                                        title="150px=썸네일, 원본=고해상. ✓=DB에 경로 있음(보통 파일 있음), ✗=삭제·만료 후 정리됨"
+                                                    >
+                                                        <span className="" title={has150 ? '150px 썸네일: 저장됨' : '150px 썸네일: 없음'}>
+                                                            {has150 ? <span className="text-blue-500">썸네일✓</span> : <span className="text-gray-500">썸네일✗</span>}
+                                                        </span>
+                                                        <span title={hasOrig ? '고해상 원본: 저장됨' : '고해상 원본: 없음(배송완료 처리 시 삭제됨)'}>
+                                                            {hasOrig ? <span className="text-blue-500">원본✓</span> : <span className="text-gray-500">원본✗</span>}
+                                                        </span>
+                                                    </span>
+                                                );
+                                            })()}
+                                        </td>
                                         <td className="p-3">{item.quantity}</td>
                                         {/* <td className="p-3 text-center">{item.price?.toLocaleString()}원</td> */}
                                         <td className="p-3">{(item.price * item.quantity).toLocaleString()}원</td>

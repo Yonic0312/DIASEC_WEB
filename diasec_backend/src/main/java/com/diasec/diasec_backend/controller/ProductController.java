@@ -277,13 +277,14 @@ public class ProductController {
         return ResponseEntity.ok(productService.getCollectionItems(collectionId));
     }
 
-    // 상품 개수 가져오기
+    // 상품 개수 가져오기 (선택: title — 상품명 부분 검색 시 DB 기준 총 개수)
     @GetMapping("/count/author")
     public ResponseEntity<Integer> countByCategoryAndAuthor(
         @RequestParam String category,
-        @RequestParam(required = false) String author
+        @RequestParam(required = false) String author,
+        @RequestParam(required = false) String title
     ) {
-        return ResponseEntity.ok(productService.countProductsByCategoryAndAuthor(category, author));
+        return ResponseEntity.ok(productService.countProductsByCategoryAndAuthor(category, author, title));
     }
 
     @GetMapping("/search/all")

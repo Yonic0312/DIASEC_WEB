@@ -83,6 +83,7 @@ import Admin_BizView from './components/Admin/Admin_BizView'
 // import Admin_Lease_Status from './components/Admin/Lease_Status'
 import Admin_AuthorManager from './components/Admin/AuthorManager'
 import Admin_RetouchList from './components/Admin/AdminRetouchList'
+import Admin_Home from './components/Admin/Admin_Home'
 
 
 import Footer from './components/Footer/Footer'
@@ -241,7 +242,7 @@ function SeoMetaManager() {
 
         const promoTitle = SEO_PROMO_TITLE;
         const seoDefaults = {
-            title: `디아섹코리아 | 20% 오픈할인`,
+            title: `디아섹 액자·맞춤액자 전문 | 디아섹코리아 | 20% 오픈할인`,
             description:
                 '디아섹코리아에서 디아섹 액자와 맞춤 액자를 만나보세요. 작품과 사진에 맞춘 고급 액자 제작 서비스를 제공합니다.',
             canonical: currentUrl,
@@ -538,6 +539,7 @@ function App() {
                     <Route path="/policy/privacy" element={<Privacy />} />
 
                     {/* 어드민 */}
+                    <Route path="/admin_home" element={<Admin_Home />} />
                     <Route path="/admin/insert_Product" element={<Insert_Product/>} />
                     <Route path="/admin/order_Status" element={<Order_Status/>} />   
                     <Route path="/admin/order_Detail/:itemId" element={<Admin_Order_Detail/>} />

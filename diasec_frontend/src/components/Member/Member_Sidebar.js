@@ -45,7 +45,7 @@ const Member_Sidebar = () => {
                             type="button"
                             className="
                                 md:text-[21px] text-[clamp(11px,2.3455vw,18px)]
-                                mt-[-1px] mb-3 font-bold cursor-default text-left"
+                                mt-[-1px] mb-3 font-bold text-left cursor-pointer"
                             onClick={() => navigate('/mypage')}
                         >
                             마이페이지

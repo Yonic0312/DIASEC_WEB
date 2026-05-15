@@ -168,6 +168,17 @@ public class OrderService {
         return order;
     }
 
+    /** 관리자: 주문 건(orders) 배송·연락처 정보 수정 — itemId로 oid 조회 후 반영 */
+    @Transactional
+    public boolean updateOrderShippingByItemId(Long itemId, OrderVo patch) {
+        Long oid = orderMapper.selectOidByItemId(itemId);
+        if (oid == null) {
+            return false;
+        }
+        patch.setOid(oid);
+        return orderMapper.updateOrderShippingInfo(patch) > 0;
+    }
+
     // 주문 취소
     @Transactional
     public void cancelAllOrderItems(Long oid) {

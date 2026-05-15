@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useContext, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { MemberContext } from '../../context/MemberContext';
 import { toast } from 'react-toastify';
@@ -11,7 +11,7 @@ import icon_kakao from '../../assets/button/icon_kakao.png';
 import icon_naver from '../../assets/button/icon_naver.png';
 import mainPage from '../../assets/CustomFrames/상세페이지.jpg';
 import ProductDetailTabs from '../ProductDetailTabs/ProductDetailTabs.js';
-import { getDiscountedUnitPrice } from '../../utils/siteDiscount';
+import { getDiscountedUnitPrice, getSiteDiscountPercent } from '../../utils/siteDiscount';
 import {
     SitePriceRow,
     SitePriceTotal,
@@ -58,6 +58,7 @@ const presetImageMap = {
 const Main_CustomFrames = () => {
     const API = process.env.REACT_APP_API_BASE;
     const {member, setMember} = useContext(MemberContext);
+    const isAdmin = member?.role === 'ADMIN';
     const navigate = useNavigate();
     const location = useLocation();
     const [customItems, setCustomItems] = useState([]); // 상품 
@@ -106,6 +107,17 @@ const Main_CustomFrames = () => {
     // 모바일 구매버튼 바텀에 스티키//
     
     const [showGuestChoice, setShowGuestChoice] = useState(false);
+
+    /** 관리자: cm만 넣어 견적 확인(주문·이미지에 반영 안 함) */
+    const [adminQuoteModalOpen, setAdminQuoteModalOpen] = useState(false);
+    const [adminQuoteW, setAdminQuoteW] = useState('');
+    const [adminQuoteH, setAdminQuoteH] = useState('');
+
+    const openAdminQuoteModal = () => {
+        setAdminQuoteW(String(Math.floor(width)));
+        setAdminQuoteH(String(Math.floor(height)));
+        setAdminQuoteModalOpen(true);
+    };
 
     // 사이즈 조절하기 아래 이미지 사진 상품 리스트
     const [selectedItemId, setSelectedItemId] = useState(null);
@@ -184,8 +196,10 @@ const Main_CustomFrames = () => {
 
     };
 
-    // 썸네일 이미지 클릭시 사이즈 수정 UI 반영 (업로드 중 아이템 제외)
-    useEffect(() => {
+    // 다른 이미지 선택 시 · 업로드 완료 시에만 아이템 → 폼 동기화 (layout: 선택 직후 폼이 이전 줄 값을 안 쓰도록)
+    // selectedItem.width/height를 의존성에 넣지 않음: 사이즈 조절 시 customItems 반영이 한 틱 늦으면
+    // 여기서 이전 값으로 setWidth가 다시 불려 왔다갔다 함.
+    useLayoutEffect(() => {
         if (!selectedItem || selectedItem.isUploading) return;
 
         setWidth(selectedItem.width);
@@ -195,10 +209,18 @@ const Main_CustomFrames = () => {
         setMaxWidth(selectedItem.maxWidth);
         setMaxHeight(selectedItem.maxHeight);
         setWidthInput(String(Math.floor(selectedItem.width)));
-    }, [selectedItemId]);
+    }, [selectedItemId, selectedItem?.isUploading]);
+
+    const prevSelectedItemIdRef = useRef(selectedItemId);
 
     // 실시간으로 항목들의 사이즈 변경 (업로드 중/0값 반영 방지)
     useEffect(() => {
+        // 줄만 바뀐 첫 렌더에서는 width/height state가 아직 이전 줄 값이라 customItems를 덮어쓰면 안 됨
+        if (prevSelectedItemIdRef.current !== selectedItemId) {
+            prevSelectedItemIdRef.current = selectedItemId;
+            return;
+        }
+
         if (!selectedItemId || !aspectRatio) return;
         if (!selectedItem || selectedItem.isUploading) return;
         if (width <= 0 || height <= 0) return;
@@ -206,7 +228,7 @@ const Main_CustomFrames = () => {
         const newArea = width * height;
         const newPrice = calculateCumulativePrice(newArea);
 
-        setCustomItems(prev => 
+        setCustomItems(prev =>
             prev.map(item => 
                 item.id === selectedItemId
                 ? (
@@ -307,7 +329,13 @@ const Main_CustomFrames = () => {
                     retouch: { enabled: false, types: [], note: '' },
                     isUploading: true,
                 }
-            ]);
+            ]); 
+
+            // 파일 선택 초기화 (연속으로 같은 이미지 넣을때)
+            if (e.target && typeof e.target.value !== 'undefined') {
+                e.target.value = "";
+            }
+
             setSelectedItemId(tempId);
 
             const objectUrl = URL.createObjectURL(file);
@@ -356,14 +384,6 @@ const Main_CustomFrames = () => {
                         isUploading: false,
                     };
                     setCustomItems(prev => prev.map(it => (it.id === tempId ? newItem : it)));
-                    if (selectedItemId === tempId) {
-                        setWidth(width);
-                        setHeight(height);
-                        setAspectRatio(ratio);
-                        setMaxWidth(maxWidth);
-                        setMaxHeight(maxHeight);
-                        setWidthInput(String(Math.floor(width)));
-                    }
                     setSelectedItemId(tempId);
                 } finally {
                     URL.revokeObjectURL(objectUrl);
@@ -1020,7 +1040,18 @@ const Main_CustomFrames = () => {
 
                     {/* 사이즈 입력 */}
                     <div className="flex flex-col">
-                        <label className="text-base font-semibold md:mt-2">사이즈 조정</label>
+                        <div className="flex flex-wrap items-center justify-between gap-2 md:mt-2">
+                            <label className="text-base font-semibold">사이즈 조정</label>
+                            {isAdmin && (
+                                <button
+                                    type="button"
+                                    onClick={openAdminQuoteModal}
+                                    className="text-xs font-semibold px-2.5 py-1 rounded-md border border-amber-600 text-amber-900 bg-amber-50 hover:bg-amber-100"
+                                >
+                                    관리자: 견적 계산
+                                </button>
+                            )}
+                        </div>
                         <div className="flex gap-3 items-end mt-1">
                             <div className="flex flex-col w-full">
                                 <span className="text-sm text-gray-500 mb-1">가로 (cm)</span>
@@ -1651,7 +1682,7 @@ const Main_CustomFrames = () => {
 
             {/* 하단 고정바 */}
             {showBottomBuy && (
-                <div className="fixed md:hidden bottom-0 left-0 right-0 z-100">
+                <div className="fixed md:hidden bottom-0 left-0 right-0 z-[100]">
                     <div className="w-full">
                         <button
                             type="button"
@@ -1659,6 +1690,104 @@ const Main_CustomFrames = () => {
                         >
                             바로구매
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {isAdmin && adminQuoteModalOpen && (
+                <div
+                    className="fixed inset-0 z-[200] flex items-center justify-center bg-black/45 p-4"
+                    role="presentation"
+                    // onClick={() => setAdminQuoteModalOpen(false)}
+                >
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="admin-quote-modal-title"
+                        className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-gray-200"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <h3 id="admin-quote-modal-title" className="text-lg font-bold text-gray-900 mb-1">
+                            맞춤액자 견적 (관리자)
+                        </h3>
+                        <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+                            가로·세로(cm)를 입력하면 표시 가격 기준으로 안내합니다. 실제 등록 이미지나 주문에는 적용되지 않습니다.
+                        </p>
+                        <div className="flex flex-wrap items-end gap-3 mb-4">
+                            <div className="flex flex-col">
+                                <span className="text-xs text-gray-600 mb-1">가로 (cm)</span>
+                                <input
+                                    type="text"
+                                    inputMode="decimal"
+                                    value={adminQuoteW}
+                                    onChange={(e) => setAdminQuoteW(e.target.value.replace(/[^\d.]/g, ''))}
+                                    className="w-[110px] border border-gray-400 rounded-md px-2 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#D0AC88]"
+                                />
+                            </div>
+                            <span className="text-lg font-semibold text-gray-500 pb-2">×</span>
+                            <div className="flex flex-col">
+                                <span className="text-xs text-gray-600 mb-1">세로 (cm)</span>
+                                <input
+                                    type="text"
+                                    inputMode="decimal"
+                                    value={adminQuoteH}
+                                    onChange={(e) => setAdminQuoteH(e.target.value.replace(/[^\d.]/g, ''))}
+                                    className="w-[110px] border border-gray-400 rounded-md px-2 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#D0AC88]"
+                                />
+                            </div>
+                        </div>
+                        <div className="rounded-lg bg-gray-50 border border-gray-200 p-4 mb-5 min-h-[88px]">
+                            {(() => {
+                                const pw = Math.floor(parseFloat(String(adminQuoteW).replace(/[^\d.]/g, '')) || 0);
+                                const ph = Math.floor(parseFloat(String(adminQuoteH).replace(/[^\d.]/g, '')) || 0);
+                                if (pw <= 0 || ph <= 0) {
+                                    return (
+                                        <p className="text-sm text-gray-500">가로·세로에 숫자를 입력하면 견적이 표시됩니다.</p>
+                                    );
+                                }
+                                const area = pw * ph;
+                                const original = calculateCumulativePrice(area);
+                                const discounted = getDiscountedUnitPrice(original);
+                                const pct = getSiteDiscountPercent();
+                                const hasDiscount = discounted < original;
+                                return (
+                                    <div className="space-y-2">
+                                        <p className="text-xs text-gray-600">
+                                            면적 {area.toLocaleString()} cm² ({pw} × {ph} cm)
+                                        </p>
+                                        {hasDiscount ? (
+                                            <div className="text-sm md:text-base">
+                                                <p className="text-gray-700">
+                                                    원가{' '}
+                                                    <span className="line-through text-gray-500">
+                                                        {original.toLocaleString()}원
+                                                    </span>
+                                                </p>
+                                                <p className="mt-1 font-bold text-[#a67a3e]">
+                                                    할인가 {discounted.toLocaleString()}원
+                                                    <span className="ml-2 font-normal text-xs text-gray-600">
+                                                        ({pct}% 할인 적용)
+                                                    </span>
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <p className="text-base font-bold text-gray-900">
+                                                견적 {original.toLocaleString()}원
+                                            </p>
+                                        )}
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setAdminQuoteModalOpen(false)}
+                                className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                            >
+                                닫기
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

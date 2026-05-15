@@ -32,7 +32,9 @@ public interface OrderMapper {
 
     // itemId로 oid 조회
     Long selectOidByItemId(@Param("itemId") Long itemId);
-    
+
+    /** 관리자: orders 배송·주문자 정보 수정 */
+    int updateOrderShippingInfo(OrderVo vo);
 
     // oid로 주문정보 + 주문상품 목록 조회
     OrderVo selectOrderByOid(@Param("oid") Long oid);
