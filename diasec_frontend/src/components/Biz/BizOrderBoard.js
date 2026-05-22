@@ -18,7 +18,7 @@ const BizOrderBoard = () => {
     useEffect(() => {
         axios.get(`${API}/biz/list`)
             .then((res) => setPosts(res.data))
-            .catch(() => console.log('목록을 불러오지 못했습니다.'));
+            .catch(() => {});
     }, []);
 
     const handlePostClick = async (post) => {

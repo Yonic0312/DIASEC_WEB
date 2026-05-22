@@ -23,7 +23,7 @@ const Admin_BizList = () => {
                 setOrders(res.data);
                 setFiltered(res.data);
             })
-            .catch(() => console.log('기업 주문 목록을 불러오지 못했습니다.'));
+            .catch(() => {});
     }, []);
 
     // 필터 초기화

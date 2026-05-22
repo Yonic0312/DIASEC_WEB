@@ -551,8 +551,6 @@ const None_Custom_Detail = () => {
             quantity: 1,
         }));
 
-        console.log(category);
-
         try {
             await axios.post(`${API}/cart/insert`, payload);
                 if (window.confirm("장바구니에 추가되었습니다. 장바구니로 이동할까요?")) {

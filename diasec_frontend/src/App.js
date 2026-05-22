@@ -358,15 +358,11 @@ function Layout() {
 
     useEffect(() => {
         const handler = async (e) => {
-            // console.log("[GLOBAL message]", e.origin, e.data);
-
             if (e.origin !== window.location.origin) return;
 
             const { type, message } = e.data || {};
 
             if (type === "LINK_REQUIRED") {
-                // 연결 화면으로 이동
-                console.log("LINK_REQUIRED -> /link-social");
                 navigate("/link-social");
                 return;
             }

@@ -341,7 +341,6 @@ const Modify = () => {
                     currentPassword: nowPassword,
                     newPassword: newPassword || null
                 };
-                console.log("birth : ", birthStr);
 
                 // 수정 요청
                 await axios.post(`${API}/member/update`, formData, { withCredentials: true});

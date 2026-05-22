@@ -50,31 +50,6 @@ const Join = () => {
         }
     }, []);
 
-    const logAxiosError = (title, err) => {
-        // axios 에러인지 확인
-        const isAxios = !!err?.isAxiosError;
-
-        console.group(`❌ ${title}`);
-        console.log("isAxiosError:", isAxios);
-        console.log("message:", err?.message);
-
-        if (err?.response) {
-            console.log("status:", err.response.status);
-            console.log("statusText:", err.response.statusText);
-            console.log("response.data:", err.response.data);
-            console.log("response.headers:", err.response.headers);
-        } else if (err?.request) {
-            console.log("request:", err.request);
-        } else {
-            console.log("error:", err);
-        }
-
-        console.log("config.url:", err?.config?.url);
-        console.log("config.method:", err?.config?.method);
-        console.log("config.data:", err?.config?.data);
-        console.groupEnd();
-    };
-
     // 인증번호 발송 함수 추가
     const handleSendSms = async () => {
         const phoneNumber = `${phone1}-${phone2}-${phone3}`;
@@ -92,15 +67,12 @@ const Join = () => {
                 to: phoneNumber
             });
 
-            console.log("✅SMS SEND OK:", res.status, res.data);
-
             setSmsSent(true);
             setSmsVerified(false);
             setSmsCode("")
             startTimer(5 * 60);
             toast.success("인증번호를 발송했습니다.");
         } catch (e) {
-            logAxiosError("SMS SEND FAIL", e);
             if (e?.response?.status === 429) {
                 const retryAfterSec = Number(e?.response?.data?.retryAfterSec || 0);
                 const msg = e?.response?.data?.msg || '요청이 너무 많습니다.';
@@ -127,8 +99,6 @@ const Join = () => {
                 to: phoneNumber,
                 code: smsCode
             });
-
-            console.log("✅SMS SEND OK:", res.status, res.data);
 
             setSmsVerified(true);
             toast.success("휴대폰 인증이 완료되었습니다.");
@@ -215,7 +185,6 @@ const Join = () => {
             return true;
         } catch (error) {
             toast.error('아이디 중복 확인 중 오류가 발생했습니다.');
-            console.log(error);
             return false;
         }
     };

@@ -18,7 +18,6 @@ const InquiryList = () => {
             .then(res => res.json())
             .then(data => {
                 setInquiries(data);
-                console.log(data);
             });
     }, [member?.id]);
 

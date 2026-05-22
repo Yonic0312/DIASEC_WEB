@@ -246,7 +246,7 @@ const Main_CustomFrames = () => {
     const [maxHeight, setMaxHeight] = useState(101.6);
 
     const MAX_SIZE = 50 * 1024 * 1024; // 이미지 업로드 50MB
-    const MAX_CUSTOM_ORDER_ITEMS = 10;
+    const MAX_CUSTOM_ORDER_ITEMS = 30;
     const PREVIEW_MAX_SIDE_PX = 800;
     const ORDER_THUMB_MAX_SIDE_PX = 150;
 
@@ -287,7 +287,7 @@ const Main_CustomFrames = () => {
 
         const tooBig = files.find(f => f.size > MAX_SIZE);
         if (tooBig) {
-            alert(`50MB 초과 파일이 포함되어 있습니다. \n(${tooBig.name})`);
+            toast.error(`50MB 초과 파일이 포함되어 있습니다. \n(${tooBig.name})`);
             e.target.value = "";
             return;
         }
@@ -297,7 +297,7 @@ const Main_CustomFrames = () => {
             if (e.target && typeof e.target.value !== 'undefined') {
                 e.target.value = "";
             }
-            toast.warn(`맞춤 액자는 한 번에 최대 ${MAX_CUSTOM_ORDER_ITEMS}개까지 주문할 수 있습니다.`);
+            toast.error(`맞춤 액자는 한 번에 최대 ${MAX_CUSTOM_ORDER_ITEMS}개까지 주문할 수 있습니다.`);
             return;
         }
 
@@ -632,7 +632,6 @@ const Main_CustomFrames = () => {
             retouchNote: enabledVal ? noteStr : null,
             };
         });
-        console.log(orderItems);
         navigate('/orderForm', { state: { orderItems } });
     }
 
@@ -717,7 +716,7 @@ const Main_CustomFrames = () => {
 
         setRetouchModalOpen(false);
         setRetouchTargetId(null);
-        toast.success("요청사항이 접수되었습니다. 보정 완료 시 문자로 안내해 드리겠습니다.");
+        toast.success("요청사항이 저장되었습니다. 보정 완료 시 문자로 안내해 드리겠습니다.");
     }
 
     const PAPER = {
@@ -997,7 +996,7 @@ const Main_CustomFrames = () => {
 
                                     const tooBig = files.find(f => f.size > MAX_SIZE);
                                     if (tooBig) {
-                                        alert(`50MB 초과 파일이 포함되어 있습니다 \n(${tooBig.name})`);
+                                        toast.error(`50MB 초과 파일이 포함되어 있습니다 \n(${tooBig.name})`);
                                         return;
                                     }
 
@@ -1687,6 +1686,7 @@ const Main_CustomFrames = () => {
                         <button
                             type="button"
                             className="w-full h-[50px] bg-[#D0AC88] text-white font-semibold"
+                            onClick={(e) => handleBuyNow()}
                         >
                             바로구매
                         </button>

@@ -258,7 +258,6 @@ const Header_Menu = () => {
 
         const p = pageRef.current[key];
         if (!p || p.loading || !p.hasMore) {
-            console.log("BLOCKED", key, p);
             return
         };
 

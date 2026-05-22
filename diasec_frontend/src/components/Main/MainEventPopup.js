@@ -40,7 +40,7 @@ export default function MainEventPopup({ events = [] }) {
             5500
         );
         return () => clearInterval(t);
-    }, [open, events.length])
+    }, [open, events.length, idx]);
 
     const close = useCallback(() => setOpen(false), []);
 
@@ -158,7 +158,7 @@ export default function MainEventPopup({ events = [] }) {
                                         hover:bg-black/50 backdrop-blur-[2px] transition"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        prev();
+                                        next();
                                     }}
                                 >
                                     <ChevronRight className="w-4 h-4" />

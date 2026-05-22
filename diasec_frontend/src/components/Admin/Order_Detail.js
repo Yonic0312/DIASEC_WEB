@@ -92,8 +92,6 @@ const Order_Detail = () => {
 
     // 진행상태 업데이트
     const handleStatusChange = async (itemId, newStatus, id, usedCredit, oid) => {
-        console.log("DETAIL SEND", { itemId, newStatus, id, usedCredit, oid });
-
         const item = order?.items?.[0];
         if (!item) return;
 
@@ -304,11 +302,8 @@ const Order_Detail = () => {
                 toast.error('택배사를 직접 입력해 주세요.');
                 return;
             }
-            console.log(customCompany);
 
             finalTrackingCompany = trackingCompany === '기타' ? customCompany.trim() : trackingCompany;
-
-            console.log(finalTrackingCompany);
 
             if (!finalTrackingCompany) {
                 toast.error('택배사를 선택하거나 입력해 주세요.');

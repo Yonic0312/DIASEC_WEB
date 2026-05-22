@@ -265,11 +265,8 @@ const Order_Status = () => {
                 toast.error('택배사를 직접 입력해 주세요.');
                 return;
             }
-            console.log(customCompany);
 
             finalTrackingCompany = trackingCompany === '기타' ? customCompany.trim() : trackingCompany;
-
-            console.log(finalTrackingCompany);
 
             if (!finalTrackingCompany) {
                 toast.error('택배사를 선택하거나 입력해 주세요.');

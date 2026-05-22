@@ -26,7 +26,7 @@ const Member_Sidebar = () => {
                 })
                 .catch((err) => {
                     console.error("로그아웃 실패", err);
-                    toast.success('로그아웃에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+                    toast.error('로그아웃에 실패했습니다. 잠시 후 다시 시도해 주세요.');
             });
         }
     };

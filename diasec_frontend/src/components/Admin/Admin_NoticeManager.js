@@ -102,10 +102,6 @@ const Admin_NoticeManager = () => {
                 formData.append('existingUrls', img.url);
             }
         });
-        
-        for (let pair of formData.entries()) {
-            console.log(pair[0], pair[1]);
-        }
 
         try {
             await axios.post(`${API}/notice/update/${noticeId}`, formData, {
@@ -270,7 +266,6 @@ const Admin_NoticeManager = () => {
                                             <Admin_NoticeEditor 
                                                 existingImages={editImages} 
                                                 onImagesChange={(images) => {
-                                                    console.log('전달받은 이미지들:', images);
                                                     setEditImages(images)
                                                 }}
                                             />

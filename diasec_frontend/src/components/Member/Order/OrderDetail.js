@@ -242,11 +242,6 @@ const OrderDetail = () => {
 
             claimImages.forEach(file => formData.append('images', file));
 
-            // FormData 내부 확인
-            for (const [k, v] of formData.entries()) {
-                console.log("FD:", k, v);
-            }
-
             const res = await axios.post(`${API}/order/claim`, formData,{
                 headers: { 'Content-Type': 'multipart/form-data' },
                 withCredentials: true,

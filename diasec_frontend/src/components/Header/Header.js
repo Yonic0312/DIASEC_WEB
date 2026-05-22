@@ -18,14 +18,14 @@ const Header = () => {
     const [supportOpen, setSupportOpen] = useState(false);
     const supportRef = useRef(null);
 
-    const supportMenus = useMemo(() => ([
-        { label: "자주 묻는 질문", link: "/supportMain?tab=faq" },
-        { label: "공지사항", link: "/supportMain?tab=notice" },
-        { label: "후기게시판", link: "/supportMain?tab=" },
-        { label: "1:1문의", link: "/supportMain?tab=faq" },
-        { label: "기업컨설팅", link: "/" },
-        { label: "업무제휴", link: "/" },
-    ]), []);
+    // const supportMenus = useMemo(() => ([
+    //     { label: "자주 묻는 질문", link: "/supportMain?tab=faq" },
+    //     { label: "공지사항", link: "/supportMain?tab=notice" },
+    //     { label: "후기게시판", link: "/supportMain?tab=" },
+    //     { label: "1:1문의", link: "/supportMain?tab=faq" },
+    //     { label: "기업컨설팅", link: "/" },
+    //     { label: "업무제휴", link: "/" },
+    // ]), []);
 
     const toggleSection = (key) => {
         setOpenSections(prev => (prev === key ? null : key));
@@ -37,7 +37,7 @@ const Header = () => {
         { key:'masterPiece',         label:'명화',                         link:'/main_Items?type=masterPiece' },
         { key:'koreanPainting',      label:'동양화',                        link:'/main_Items?type=koreanPainting' },
         { key:'photoIllustration',   label:'사진/일러스트',                  link:'/main_Items?type=photoIllustration' },
-        { key:'fengShui',            label:'풍수',                         link:'/main_items?type=fengShui' },
+        { key:'fengShui',            label:'풍수',                         link:'/main_Items?type=fengShui' },
         // { key:'Contemporary',        label:'현대작가',                      link:'/main_items?type=Contemporary' },
         // { key:'authorCollection',    label:'작가',                         link:'/main_items?type=authorCollection' },
         { key:'customFrame',         label:'맞춤액자/사진보정',               link:'/customFrames' },
@@ -75,10 +75,8 @@ const Header = () => {
         if (!categories.includes(key)) return;
 
         const p = page[key];
-        console.log("[fetchMore] call", key, p); // ✅ 1번
 
         if (!p || p.loading || !p.hasMore) {
-            console.log("[fetchMore] blocked", key, p); // ✅ blocked 이유 확인
             return;
         } 
 
@@ -95,8 +93,6 @@ const Header = () => {
                     offset: p.offset
                 }
             });
-
-            console.log("[fetchMore] resp", key, "len:", (data || []).length, "offset:", p.offset); // ✅ 2번
 
             const mapped = (data || []).map(x => ({
                 label: x.label,
@@ -121,7 +117,6 @@ const Header = () => {
                 }
             }));
         } catch (e) {
-            console.error('드롭다운 로드 실패', key, e);
             setPage(prev => ({
                 ...prev,
                 [key]: { ...prev[key], loading: false, hasMore: false}
@@ -152,7 +147,6 @@ const Header = () => {
                     navigate('/');
                 })
                 .catch((err) => {
-                    console.error("로그아웃 실패", err);
                     toast.error('로그아웃에 실패했습니다. 잠시 후 다시 시도해 주세요.');
             });
         }
@@ -413,16 +407,7 @@ const Header = () => {
                                             if (!open) return; // 닫혀있으면 무시
                                             if (!categories.includes(m.key)) return;
 
-                                            const el = e.currentTarget;
-
-                                            console.log("[onScroll]", m.key, {
-                                                scrollTop: el.scrollTop,
-                                                clientHeight: el.clientHeight,
-                                                scrollHeight: el.scrollHeight,
-                                                open,
-                                                hasMore: page[m.key]?.hasMore,
-                                                loading: page[m.key]?.loading,
-                                            }); // ✅ 3번   
+                                            const el = e.currentTarget; 
                                             
                                             const nearBottom =
                                                 el.scrollTop + el.clientHeight >= el.scrollHeight - 60;
