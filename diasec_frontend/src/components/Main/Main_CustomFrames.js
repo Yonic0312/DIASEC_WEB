@@ -125,7 +125,7 @@ const Main_CustomFrames = () => {
     const [selectedItemId, setSelectedItemId] = useState(null);
     const selectedItem = customItems.find(item => item.id === selectedItemId);
 
-    const MIN_WIDTH = 36;
+    const MIN_WIDTH = 30;
 
     // 중간 가져오기
     const getMidWidth = (minW, maxW, maxH, ratio) => {
@@ -417,6 +417,11 @@ const Main_CustomFrames = () => {
 
     // 입력 완료 후 반영(딜레이 입력)
     const [widthInput, setWidthInput] = useState(String(Math.floor(width)));
+    const [heightInput, setHeightInput] = useState(String(Math.floor(height)));
+    useEffect(() => {
+        setHeightInput(String(Math.floor(height)));
+    }, [height]);
+
     const sizeHintConsumedRef = useRef(false);
     const [showSizeAdjustHint, setShowSizeAdjustHint] = useState(false);
     const [toastCooldown, setToastCooldown] = useState(false);
@@ -472,6 +477,41 @@ const Main_CustomFrames = () => {
         setWidthInput(String(Math.floor(value)));
     }
 
+    const handleHeightChange = (e) => {
+        let value = parseFloat(e.target.value);
+    
+        if (isNaN(value)) return;
+    
+        const minHeight = getActualMinHeight();
+    
+        if (value < minHeight) {
+            showToastOnce(`최소 높이는 ${Math.floor(minHeight)}cm입니다.`);
+            value = minHeight;
+        } else if (value > actualMaxHeight) {
+            showToastOnce(`최대 높이는 ${Math.floor(actualMaxHeight)}cm입니다.`);
+            value = actualMaxHeight;
+        }
+    
+        value = parseFloat(value.toFixed(1));
+    
+        if (aspectRatio) {
+            let newWidth = parseFloat((value * aspectRatio).toFixed(1));
+    
+            if (newWidth > maxWidth) {
+                showToastOnce(`이미지 비율로 계산된 가로가 최대 너비 ${maxWidth}cm를 초과하여 자동 조정됩니다.`);
+                newWidth = maxWidth;
+                value = parseFloat((newWidth / aspectRatio).toFixed(1));
+            }
+    
+            setWidth(Math.floor(newWidth));
+            setHeight(Math.floor(value));
+        } else {
+            setHeight(Math.floor(value));
+        }
+    
+        setHeightInput(String(Math.floor(value)));
+    };
+
     const toInchSize = (wCm, hCm) => {
         const wInch = (wCm / 2.54).toFixed(1);
         const hInch = (hCm / 2.54).toFixed(1);
@@ -522,12 +562,12 @@ const Main_CustomFrames = () => {
     const overlayWidthPct = (previewWidth / BASE_BG_W) * 100;
     const overlayHeightPct = (previewHeight / BASE_BG_H) * 100;
 
-    // A4 ~ A1 오버레이
+    // A3 ~ A0 오버레이
     const PAPER_SIZES_CM = {
-        A4: { w: 21.0, h: 29.7 },
         A3: { w: 29.7, h: 42.0 },
         A2: { w: 42.0, h: 59.4 },
         A1: { w: 59.4, h: 84.1 },
+        A0: { w: 84.0, h: 119.0 },
     }
 
     const [paperKey, setPaperKey] = useState(null);
@@ -548,7 +588,7 @@ const Main_CustomFrames = () => {
 
     const paperWidthPct = (paperWpx / BASE_BG_W) * 100;
     const paperHeightPct = (paperHpx / BASE_BG_H) * 100;
-    // A4 ~ A1 오버레이 //
+    // A3 ~ A0 오버레이 //
 
     useEffect(() => {
         if (!aspectRatio) return;
@@ -587,7 +627,19 @@ const Main_CustomFrames = () => {
         return Math.min(maxWidth, widthByHeight);
     };
 
+    const getActualMinHeight = () => {
+        if (!aspectRatio) return MIN_WIDTH;
+        return MIN_WIDTH / aspectRatio;
+    };
+
+    const getActualMaxHeight = () => {
+        if (!aspectRatio)return maxHeight;
+        const heightByWidth = maxWidth / aspectRatio;
+        return Math.min(maxHeight, heightByWidth)
+    }
+    
     const actualMaxWidth = getActualMaxWidth();
+    const actualMaxHeight = getActualMaxHeight();
     const isCustomOrderFull = customItems.length >= MAX_CUSTOM_ORDER_ITEMS;
     const showImageUploadHint = customItems.length === 0;
     const UploadAreaTag = isCustomOrderFull ? 'div' : 'label';
@@ -793,6 +845,16 @@ const Main_CustomFrames = () => {
         }
     };
 
+    const setItemQuantity = (itemId, quantity) => {
+        const parsed = Math.floor(Number(quantity));
+        const qty = Number.isFinite(parsed) && parsed >= 1 ? parsed : 1;
+        setCustomItems(prev => 
+            prev.map(it => 
+                it.id === itemId ? { ...it, quantity: qty } : it
+            )
+        );
+    };
+
     const updateItemQuantity = (itemId, delta) => {
         setCustomItems(prev =>
             prev.map(it =>
@@ -830,29 +892,6 @@ const Main_CustomFrames = () => {
         setRetouchTargetId(null);
         toast.success("요청사항이 저장되었습니다. 보정 완료 시 문자로 안내해 드리겠습니다.");
     }
-
-    const PAPER = {
-        A4: { w: 21.0, h: 29.7 },
-        A3: { w: 29.7, h: 42.0 },
-        A2: { w: 42.0, h: 59.4 },
-        A1: { w: 59.4, h: 84.1 },
-        };
-
-        const applyPaperPreset = (key) => {
-        if (!aspectRatio) {
-            toast.warn("이미지를 먼저 등록해주세요.");
-            return;
-        }
-
-        const p = PAPER[key];
-
-        // 사진 방향에 따라 '가로 길이'를 자동 선택
-        const targetWidth = aspectRatio >= 1 ? p.h : p.w; 
-        // 가로형이면 긴 변을 가로로(29.7), 세로형이면 짧은 변을 가로로(21)
-
-        handleWidthChange({ target: { value: targetWidth } });
-        setWidthInput(String(Math.floor(targetWidth)));
-    };
 
     const WIDTH_PRESETS = [
         { label: "40cm", value: 40 },
@@ -991,7 +1030,7 @@ const Main_CustomFrames = () => {
                         alt="배경"
                     />
 
-                    {/* A4~A1 종이 오버레이 */}
+                    {/* A3~A0 종이 오버레이 */}
                     {paperKey && (
                         <div
                             className="absolute z-10 flex items-center justify-center text-gray-400 opacity-80"
@@ -1181,14 +1220,6 @@ const Main_CustomFrames = () => {
                                     onKeyDown={(e) => {
                                         if (e.key === "Enter") {
                                             e.preventDefault();
-
-                                            // const v = parseFloat(widthInput);
-                                            // if (isNaN(v)) {
-                                            //     setWidthInput(String(Math.floor(width)));
-                                            //     return;
-                                            // }
-
-                                            // handleWidthChange({ target: { value: v } });
                                             e.currentTarget.blur();
                                         }
 
@@ -1220,11 +1251,38 @@ const Main_CustomFrames = () => {
                             <div className="flex flex-col w-full">
                                 <span className="text-sm text-gray-500 mb-1">세로 (cm) </span>
                                 <input
-                                    type="number" 
-                                    value={Math.floor(height)}
-                                    readOnly
-                                    className="w-full border border-gray-500 rounded px-3 py-2 text-base bg-gray-100 cursor-not-allowed"
-                                />
+                                type="text"
+                                value={heightInput}
+                                onChange={(e) => {
+                                    dismissSizeAdjustHint();
+                                    const onlyNumber = e.target.value.replace(/\D/g, '');
+                                    setHeightInput(onlyNumber);
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        e.currentTarget.blur();
+                                    }
+                                    if (["e", "E", "+", "-"].includes(e.key)) {
+                                        e.preventDefault();
+                                    }
+                                }}
+                                onBlur={() => {
+                                    const v = parseFloat(heightInput);
+                                    if (isNaN(v)) {
+                                        setHeightInput(String(Math.floor(height)));
+                                        return;
+                                    }
+                                    handleHeightChange({ target: { value: v } });
+                                }}
+                                onWheel={(e) => e.preventDefault()}
+                                inputMode="numeric"
+                                className={`w-full border rounded-md px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#D0AC88] ${
+                                    showSizeAdjustHint
+                                        ? 'size-adjust-hint-input border-2'
+                                        : 'border border-gray-500'
+                                }`}
+                            />
                             </div>
                         </div>
                         
@@ -1257,7 +1315,7 @@ const Main_CustomFrames = () => {
                         </span>
 
                         <div className="w-full flex justify-between mt-2 gap-2">
-                            {['A4', 'A3', 'A2', 'A1'].map(k => (
+                            {['A3', 'A2', 'A1', 'A0'].map(k => (
                                 <button
                                     key={k}
                                     type="button"
@@ -1274,7 +1332,7 @@ const Main_CustomFrames = () => {
                                 className="flex-1 h-[34px] rounded-md border text-sm font-semibold bg-white text-gray-500 opacity-90 border-gray-300 hover:bg-[#ecd2af] hover:text-white hover:border-[#ecd2af]"
                                 onClick={() => {
                                     if (!paperKey) {
-                                        toast.warn("A1~A4 중 하나를 먼저 선택해주세요.");
+                                        toast.warn("A3~A0 중 하나를 먼저 선택해주세요.");
                                     }
                                     setPaperRotate(v => !v);
                                 }}
@@ -1336,9 +1394,10 @@ const Main_CustomFrames = () => {
                                                                         neutralClassName={`${SITE_PRICE_TEXT} text-gray-800`}
                                                                     />
                                                                 </p>
-                                                                {!item.isUploading && (
+
+                                                                {/* 수량 변경 버튼 */}                                                               {!item.isUploading && (
                                                                     <div
-                                                                        className="flex items-center gap-1.5 mt-1"
+                                                                        className="flex items-center gap-1.5 mb-1"
                                                                         onClick={(e) => e.stopPropagation()}
                                                                     >
                                                                         <button
@@ -1351,9 +1410,23 @@ const Main_CustomFrames = () => {
                                                                         >
                                                                             -
                                                                         </button>
-                                                                        <span className="min-w-[20px] text-center text-[13px] font-semibold">
-                                                                            {item.quantity ?? 1}
-                                                                        </span>
+                                                                        <input 
+                                                                            type="number" 
+                                                                            min={1}
+                                                                            value={item.quantity ?? 1}
+                                                                            onClick={(e) => e.stopPropagation()}
+                                                                            onChange={(e) => {
+                                                                                e.stopPropagation();
+                                                                                const { value } = e.target;
+                                                                                if (value === '') return;
+                                                                                setItemQuantity(item.id, value);
+                                                                            }}
+                                                                            onBlur={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setItemQuantity(item.id, e.target.value || 1);
+                                                                            }}
+                                                                            className="w-10 h-6 border rounded-md bg-white text-center text-[13px] font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                                        />
                                                                         <button
                                                                             type="button"
                                                                             className="w-6 h-6 border rounded-md bg-white hover:bg-gray-100 text-[14px] font-bold flex items-center justify-center"
