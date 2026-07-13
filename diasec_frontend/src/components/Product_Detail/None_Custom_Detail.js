@@ -91,6 +91,7 @@ const None_Custom_Detail = () => {
     const [height, setHeight] = useState(27.9);
 
     const MIN_WIDTH = 30;
+    const MIN_HEIGHT = 30;
 
     const [aspectRatio, setAspectRatio] = useState(null);
     const [toastCooldown, setToastCooldown] = useState(false);
@@ -199,9 +200,11 @@ const None_Custom_Detail = () => {
 
         if (isNaN(value)) return;
 
-        if (value < MIN_WIDTH) {
-            showToastOnce(`최소 넓이는 ${Math.floor(MIN_WIDTH)}cm입니다.`);
-            value = MIN_WIDTH;
+        const minWidth = getActualMinWidth();
+
+        if (value < minWidth) {
+            showToastOnce(`최소 넓이는 ${Math.floor(minWidth)}cm입니다.`);
+            value = minWidth;
         } else if (value > actualMaxWidth) {
             showToastOnce(`최대 넓이는 ${Math.floor(actualMaxWidth)}cm입니다.`);
             value = actualMaxWidth;
@@ -211,6 +214,12 @@ const None_Custom_Detail = () => {
 
         if (aspectRatio) {
             let newHeight = parseFloat((value / aspectRatio).toFixed(1));
+
+            if (newHeight < MIN_HEIGHT) {
+                showToastOnce(`이미지 비율로 계산된 높이가 최소 높이 ${MIN_HEIGHT}cm 미만이라 자동 조정됩니다.`);
+                newHeight = MIN_HEIGHT;
+                value = parseFloat((newHeight * aspectRatio).toFixed(1));
+            }
 
             if (newHeight > maxHeight) {
                 showToastOnce(`이미지 비율로 계산된 높이가 최대 높이 ${maxHeight}cm를 초과하여 자동 조정됩니다.`);
@@ -232,11 +241,9 @@ const None_Custom_Detail = () => {
 
         if (isNaN(value)) return;
 
-        const minHeight = getActualMinHeight();
-
-        if (value < minHeight) {
-            showToastOnce(`최소 높이는 ${Math.floor(minHeight)}cm입니다.`);
-            value = minHeight;
+        if (value < MIN_HEIGHT) {
+            showToastOnce(`최소 높이는 ${MIN_HEIGHT}cm입니다.`);
+            value = MIN_HEIGHT;
         } else if (value > actualMaxHeight) {
             showToastOnce(`최대 높이는 ${Math.floor(actualMaxHeight)}cm입니다.`);
             value = actualMaxHeight;
@@ -246,6 +253,12 @@ const None_Custom_Detail = () => {
 
         if (aspectRatio) {
             let newWidth = parseFloat((value * aspectRatio).toFixed(1));
+
+            if (newWidth < MIN_WIDTH) {
+                showToastOnce(`이미지 비율로 계산된 가로가 최소 너비 ${MIN_WIDTH}cm 미만이라 자동 조정됩니다.`);
+                newWidth = MIN_WIDTH;
+                value = parseFloat((newWidth / aspectRatio).toFixed(1));
+            }
 
             if (newWidth > maxWidth) {
                 showToastOnce(`이미지 비율로 계산된 가로가 최대 너비 ${maxWidth}cm를 초과하여 자동 조정됩니다.`);
@@ -340,16 +353,16 @@ const None_Custom_Detail = () => {
     }
 
     const [paperKey, setPaperKey] = useState(null);
-    const [paperRotate, setPaperRotate] = useState(false);
+    const isPaperLandscape = aspectRatio != null && aspectRatio >= 1;
 
     const paper = paperKey ? PAPER_SIZES_CM[paperKey] : null;
 
     const paperWcm = paper
-        ? (paperRotate ? paper.h : paper.w)
+        ? (isPaperLandscape ? paper.h : paper.w)
         : 0;
 
     const paperHcm = paper
-        ? (paperRotate ? paper.w : paper.h)
+        ? (isPaperLandscape ? paper.w : paper.h)
         : 0;
 
     const paperWpx = paperWcm * CM_TO_PX;
@@ -389,10 +402,12 @@ const None_Custom_Detail = () => {
         return Math.min(maxWidth, widthByHeight);
     };
 
-    const getActualMinHeight = () => {
+    const getActualMinWidth = () => {
         if (!aspectRatio) return MIN_WIDTH;
-        return MIN_WIDTH / aspectRatio;
+        return Math.max(MIN_WIDTH, MIN_HEIGHT * aspectRatio);
     };
+
+    const getActualMinHeight = () => MIN_HEIGHT;
 
     const getActualMaxHeight = () => {
         if (!aspectRatio) return maxHeight;
@@ -400,6 +415,7 @@ const None_Custom_Detail = () => {
         return Math.min(maxHeight, heightByWidth);
     };
 
+    const actualMinWidth = getActualMinWidth();
     const actualMaxWidth = getActualMaxWidth();
     const actualMaxHeight = getActualMaxHeight();
 
@@ -450,9 +466,14 @@ const None_Custom_Detail = () => {
                             setMaxWidth(maxW);
                             setMaxHeight(maxH);
 
-                            let startW = getMidWidth(MIN_WIDTH, maxW, maxH, ratio);
+                            const effectiveMinWidth = Math.max(MIN_WIDTH, MIN_HEIGHT * ratio);
+                            let startW = getMidWidth(effectiveMinWidth, maxW, maxH, ratio);
                             let startH = parseFloat((startW / ratio).toFixed(1));
 
+                            if (startH < MIN_HEIGHT) {
+                                startH = MIN_HEIGHT;
+                                startW = parseFloat((startH * ratio).toFixed(1));
+                            }
                             if (startH > maxH) {
                                 startH = maxH;
                                 startW = parseFloat((startH * ratio).toFixed(1));
@@ -905,7 +926,7 @@ const None_Custom_Detail = () => {
                                 />
                                 <input
                                     type="range"
-                                    min={MIN_WIDTH}
+                                    min={actualMinWidth}
                                     max={actualMaxWidth}
                                     step="0.1"
                                     value={width}
@@ -985,28 +1006,7 @@ const None_Custom_Detail = () => {
                                     {k}
                                 </button>
                             ))}
-                            <button 
-                                className="flex-1 h-[34px] rounded-md border text-sm font-semibold bg-white text-gray-500 opacity-90 border-gray-300 hover:bg-[#ecd2af] hover:text-white hover:border-[#ecd2af]"
-                                onClick={() => {
-                                    if (!paperKey) {
-                                        toast.warn("A3~A0 중 하나를 먼저 선택해주세요.");
-                                    }
-                                    setPaperRotate(v => !v);
-                                }}
-                            >
-                                {paperRotate === true ?  "가로" : "세로"}
-                            </button>
                         </div>
-
-                        {/* {paperKey && (
-                            <button
-                                type="button"
-                                onClick={() => setPaperRotate(v => !v)}
-                                className="mt-2 text-xs text-gray-600 underline"
-                            >
-                                종이 방향 바꾸기 (가로/세로)
-                            </button>
-                        )} */}
 
                         <hr className='mt-3 border-[1px] border-gray-200 opacity-80' />
                         
