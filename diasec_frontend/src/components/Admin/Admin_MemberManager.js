@@ -82,6 +82,41 @@ const Admin_MemberManager = () => {
     const [creditInput, setCreditInput] = useState(''); // 적립금 양
     const [creditDescription, setCreditDescription] = useState(''); // 설명
 
+    const isAnyModalOpen = Boolean(selectedMember || selectedCreditMember);
+
+    // 모달 열림 시 배경 스크롤 잠금
+    useEffect(() => {
+        if (!isAnyModalOpen) return;
+
+        const scrollY = window.scrollY;
+        const prevOverflow = document.body.style.overflow;
+
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollY}px`;
+        document.body.style.left = '0';
+        document.body.style.right = '0';
+        document.body.style.width = '100%';
+        document.body.style.overflow = 'hidden';
+
+        const onKey = (e) => {
+            if (e.key !== 'Escape') return;
+            if (selectedMember) setSelectedMember(null);
+            else if (selectedCreditMember) setSelectedCreditMember(null);
+        };
+        window.addEventListener('keydown', onKey);
+
+        return () => {
+            window.removeEventListener('keydown', onKey);
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.left = '';
+            document.body.style.right = '';
+            document.body.style.width = '';
+            document.body.style.overflow = prevOverflow;
+            window.scrollTo(0, scrollY);
+        };
+    }, [isAnyModalOpen, selectedMember, selectedCreditMember]);
+
     const fetchCreditHistory = async (id) => {
         try {
             const res = await axios.get(`${API}/credit/history/${id}`);
@@ -180,6 +215,7 @@ const Admin_MemberManager = () => {
                         <th className="border p-2">이름</th>
                         <th className="border p-2">이메일</th>
                         <th className="border p-2">가입일</th>
+                        <th className="border p-2">번호</th>
                         <th className="border p-2">역할</th>
                         <th className="border p-2">적립금</th>
                         <th className="border p-2">관리</th>
@@ -196,6 +232,7 @@ const Admin_MemberManager = () => {
                             <td className="border p-2 text-center">{member.name}</td>
                             <td className="border p-2 text-center">{member.email}</td>
                             <td className="border p-2 text-center">{member.createdAt?.slice(0, 10)}</td>
+                            <td className="border p-2 text-center">{member.phone ? member.phone : '-'}</td>
                             <td className="border p-2 text-center">
                                 <select
                                     value={member.role?.toLowerCase().replace("role_", "") || "user"}
@@ -316,8 +353,12 @@ const Admin_MemberManager = () => {
 
             {/* 멤버 정보 수정창 모달 */}
             {selectedMember && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-[10000]"
-                    onClick={() => setSelectedMember(null)}>
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-[10000] overscroll-none"
+                    onTouchMove={(e) => {
+                        if (e.target === e.currentTarget) e.preventDefault();
+                    }}
+                >
                     <div className="bg-white p-6 rounded w-full max-w-md" onClick={e => e.stopPropagation()}>
                         <h3 className="text-lg font-bold mb-4">회원 정보 수정</h3>
 
@@ -380,9 +421,14 @@ const Admin_MemberManager = () => {
 
             {/* 크레딧 모달창 */}
             {selectedCreditMember && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"
-                    onClick={() => setSelectedCreditMember(null)}>
-                    <div className="bg-white p-6 rounded w-full max-w-2xl" onClick={e => e.stopPropagation()}>
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-[10000] overscroll-none"
+                    onClick={() => setSelectedCreditMember(null)}
+                    onTouchMove={(e) => {
+                        if (e.target === e.currentTarget) e.preventDefault();
+                    }}
+                >
+                    <div className="bg-white p-6 rounded w-full h-1/2 max-w-2xl overflow-y-scroll" onClick={e => e.stopPropagation()}>
                         <h3 className="text-lg font-bold mb-4">{selectedCreditMember.name}님의 적립금 관리</h3>
 
                         <div className="mb-4 text-sm">

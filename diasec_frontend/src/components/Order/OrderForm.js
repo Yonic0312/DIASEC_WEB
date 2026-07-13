@@ -7,6 +7,7 @@ import requestCardPayment from './PaymentMethods/CardPayment'
 import requestKakaoPay from './PaymentMethods/KakaoPay'
 import requestRealTimeTransfer from './PaymentMethods/RealTimeTransfer'
 import { toast } from 'react-toastify';
+import { usePartner } from '../../context/PartnerContext';
 import RetouchModal, {
     CUSTOM_FRAME_RETOUCH_OPTION_LABELS,
 } from '../Modal/RetouchModal.js';
@@ -22,6 +23,7 @@ const OrderForm = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { member, setMember } = useContext(MemberContext);
+    const { partnerDiscount } = usePartner();
     const initialItems = location.state?.orderItems || [];
     const [orderItems, setOrderItems] = useState(() => 
         initialItems.map(it => ({
@@ -195,7 +197,7 @@ const OrderForm = () => {
     );
     const totalPrice = items.reduce(
         (sum, item) =>
-            sum + getDiscountedUnitPrice(item.price) * Number(item.quantity),
+            sum + getDiscountedUnitPrice(item.price, partnerDiscount) * Number(item.quantity),
         0
     );
     const deliveryFee = 0; // 배송비
@@ -381,7 +383,7 @@ const OrderForm = () => {
                 title: item.title,
                 author: item.author,
                 quantity: item.quantity,
-                price: getDiscountedUnitPrice(item.price),
+                price: getDiscountedUnitPrice(item.price, partnerDiscount),
                 period: item.period,
                 size: item.size,
                 // 맞춤액자는 주문 확정 시 multipart 파일로 업로드 후 서버에서 URL 세팅
@@ -412,7 +414,8 @@ const OrderForm = () => {
             });
 
             const response = await axios.post(`${API}/order/insert`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
+                headers: { 'Content-Type': 'multipart/form-data' },
+                timeout: 600000, // 대용량 맞춤액자 업로드 (최대 10분)
             });
             if (response.data.success) {
                 // 장바구니 삭제
@@ -1107,7 +1110,10 @@ const OrderForm = () => {
                                     <input type="text" inputMode="numeric" className="w-full md:w-[120px] border-[1px] h-8 pl-2 mr-1" value={usedCredit} 
                                         onChange={(e) => {
                                             const input = Number(e.target.value);
-                                            const maxCredit = Number(member?.credit || 0);
+                                            const maxCredit = Math.min(
+                                                Number(credit || 0),
+                                                totalPrice
+                                            );
 
                                             if (input > maxCredit) {
                                                 toast.error("보유 적립금보다 많이 입력할 수 없습니다.");

@@ -82,7 +82,8 @@
             oi.tracking_number AS trackingNumber,
             o.recipient AS recipient,
             o.recipient_phone AS recipientPhone,
-            o.orderer_phone AS ordererPhone
+            o.orderer_phone AS ordererPhone,
+            o.id AS memberId
         FROM order_items oi
         JOIN orders o ON oi.oid = o.oid
         WHERE oi.item_id = #{itemId}

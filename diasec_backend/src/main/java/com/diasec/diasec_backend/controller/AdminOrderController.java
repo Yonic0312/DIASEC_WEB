@@ -47,8 +47,6 @@ public class AdminOrderController {
     // 목록에서 진행상태 업데이트
     @PostMapping("/order/update-status")
     public Map<String, Object> updateStatus(@RequestBody Map<String, Object> request) {
-        System.out.println("update-status body = " + request);
-
         Object itemIdObj = request.get("itemId");
         Object statusObj = request.get("orderStatus");
         if (statusObj == null) {
@@ -226,9 +224,11 @@ public class AdminOrderController {
         Map<String, Object> result = new HashMap<>();
         try {
             String url = orderService.uploadRetouchPreview(itemId, file);
+            Map<String, Object> smsResult = adminOrderService.sendRetouchPreviewReadySms(itemId);
             result.put("success", true);
             result.put("fileUrl", url);
             result.put("previewStatus", "WAITING_CUSTOMER");
+            result.putAll(smsResult);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             result.put("success", false);
@@ -243,6 +243,30 @@ public class AdminOrderController {
             Long itemId = Long.valueOf(String.valueOf(body.get("itemId")));
             orderService.deleteRetouchPreview(itemId);
             return ResponseEntity.ok(Map.of("success", true));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/order/retouch/approve")
+    public ResponseEntity<?> adminApproveRetouch(@RequestBody Map<String, Object> body) {
+        try {
+            Long itemId = Long.valueOf(String.valueOf(body.get("itemId")));
+            orderService.adminApproveRetouch(itemId);
+            return ResponseEntity.ok(Map.of("success", true, "itemId", itemId));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/order/retouch/clear-request")
+    public ResponseEntity<?> clearRetouchRequest(@RequestBody Map<String, Object> body) {
+        try {
+            Long itemId = Long.valueOf(String.valueOf(body.get("itemId")));
+            orderService.clearRetouchRequest(itemId);
+            return ResponseEntity.ok(Map.of("success", true, "itemId", itemId));
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.badRequest().body(Map.of("success", false, "message", e.getMessage()));

@@ -214,6 +214,39 @@ const OrderList = () => {
         } 
     }
 
+    /** 주문 목록: 동일 주문의 여러 상품을 1줄로 요약 */
+    const getDisplayItems = (order) => {
+        const items = order.items ?? [];
+        if (items.length <= 1) {
+            return items.map((it) => ({ ...it, isGrouped: false }));
+        }
+
+        const first = items[0];
+        const groupTotalQty = items.reduce((sum, it) => sum + (Number(it.quantity) || 1), 0);
+        const groupTotalPrice = items.reduce(
+            (sum, it) => sum + (Number(it.price) || 0) * (Number(it.quantity) || 1),
+            0
+        );
+        const uniqueSizes = new Set(items.map((it) => it.size).filter(Boolean));
+        const sameTitle = items.every((it) => it.title === first.title);
+
+        return [{
+            ...first,
+            itemId: `summary-${order.oid}`,
+            isGrouped: true,
+            groupCount: items.length,
+            groupTotalQty,
+            groupTotalPrice,
+            displayTitle: sameTitle
+                ? `${first.title} ${groupTotalQty}개`
+                : `상품 ${groupTotalQty}개`,
+            displaySize:
+                uniqueSizes.size <= 1
+                    ? convertInchToCm(first.size)
+                    : `사이즈 ${uniqueSizes.size}종`,
+        }];
+    };
+
     // 리스상품 반납일 계산기
     const calculateRemainingDays = (leaseEnd) => {
         const endDate = new Date(leaseEnd);
@@ -358,8 +391,8 @@ const OrderList = () => {
                                 </div>
                             </div>
 
-                            {/* 주문 상품들 */}
-                            {order.items.map((item, iidx) => (
+                            {/* 주문 상품들 (2개 이상이면 1줄 요약) */}
+                            {getDisplayItems(order).map((item) => (
                                 <div key={item.itemId} 
                                     className='flex flex-col'>
                                     <div className="
@@ -394,7 +427,7 @@ const OrderList = () => {
                                                     ? item.thumbnailPreview || item.thumbnail || thumbCustom
                                                     : item.thumbnail
                                             } 
-                                            alt={item.title} 
+                                            alt={item.isGrouped ? item.displayTitle : item.title} 
                                             className="
                                                 md:w-20 w-[clamp(4rem,10.43vw,5rem)]
                                                 md:h-20 h-[clamp(4rem,10.43vw,5rem)]
@@ -407,10 +440,14 @@ const OrderList = () => {
                                                     flex flex-col w-full
                                                     md:text-sm text-[clamp(12px,1.825vw,14px)]
                                             ">
-                                                <span className="font-bold text-black">{item.title}</span>
+                                                <span className="font-bold text-black">
+                                                    {item.isGrouped ? item.displayTitle : item.title}
+                                                </span>
                                                 <span>카테고리: {convertCategoryName(item.category)} ({item.finishType === 'matte' ? '무광' : '유광'})</span>
                                                 <div className="flex sm:flex-row flex-col">
-                                                    <span>사이즈: {convertInchToCm(item.size)}</span>
+                                                    <span>
+                                                        사이즈: {item.isGrouped ? item.displaySize : convertInchToCm(item.size)}
+                                                    </span>
                                                 </div>
                                                 {item.category === 'lease' && (
                                                 `기간 : ${item.period}`
@@ -427,7 +464,13 @@ const OrderList = () => {
                                                 {item.category === 'lease' && item.leaseEnd && (
                                                     ` / 남은 기간: ${calculateRemainingDays(item.leaseEnd)}일`)
                                                 }
-                                                <div className="flex font-bold ml-auto"><span>{(item.price).toLocaleString()}원</span></div>
+                                                <div className="flex font-bold ml-auto">
+                                                    <span>
+                                                        {item.isGrouped
+                                                            ? `총 ${(order.finalPrice ?? item.groupTotalPrice).toLocaleString()}원`
+                                                            : `총 ${(item.price).toLocaleString()}원`}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

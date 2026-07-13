@@ -17,7 +17,7 @@ const Admin_CollectionManager = () => {
     const [editingLabel, setEditingLabel] = useState(null); // 작가
 
     // 명화 시대 추가
-    const MASTERPIECE_PERIODS = [ "르네상스", "베네치아파", "바로크", "로코코", "신고전주의", "낭만주의", "사실주의", "인상주의", "신인상주의", "후기인상주의", "근대미술" ];
+    const MASTERPIECE_PERIODS = [ "르네상스", "바로크", "로코코", "신고전주의", "낭만주의", "사실주의", "인상주의", "신인상주의", "후기인상주의", "근대미술" ];
     const KOREANPAINTING = [ "조선 전기", "조선 후기", "기타작가", "민화", "불교" ];
     
 
@@ -145,6 +145,42 @@ const Admin_CollectionManager = () => {
     
     // 컬렉션 등록 모달창
     const [isCreatePopupOpen, setIsCreatePopupOpen] = useState(false);
+
+    const isAnyModalOpen = Boolean(editingCollection || editingLabel || isCreatePopupOpen);
+
+    // 모달 열림 시 배경 스크롤 잠금
+    useEffect(() => {
+        if (!isAnyModalOpen) return;
+
+        const scrollY = window.scrollY;
+        const prevOverflow = document.body.style.overflow;
+
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollY}px`;
+        document.body.style.left = '0';
+        document.body.style.right = '0';
+        document.body.style.width = '100%';
+        document.body.style.overflow = 'hidden';
+
+        const onKey = (e) => {
+            if (e.key !== 'Escape') return;
+            if (editingLabel) setEditingLabel(null);
+            else if (editingCollection) setEditingCollection(null);
+            else if (isCreatePopupOpen) setIsCreatePopupOpen(false);
+        };
+        window.addEventListener('keydown', onKey);
+
+        return () => {
+            window.removeEventListener('keydown', onKey);
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.left = '';
+            document.body.style.right = '';
+            document.body.style.width = '';
+            document.body.style.overflow = prevOverflow;
+            window.scrollTo(0, scrollY);
+        };
+    }, [isAnyModalOpen, editingCollection, editingLabel, isCreatePopupOpen]);
 
     // 라벨 목록 페이징
     const [currentPage, setCurrentPage] = useState(1);
@@ -378,7 +414,12 @@ const Admin_CollectionManager = () => {
 
             {/* 팝업 - 컬렉션 수정 */}
             {editingCollection && (
-                <div className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-30 flex justify-center items-center z-50">
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50 overscroll-none"
+                    onTouchMove={(e) => {
+                        if (e.target === e.currentTarget) e.preventDefault();
+                    }}
+                >
                 <div className="bg-white p-6 rounded shadow-xl">
                     <h2 className="text-lg font-bold mb-4">컬렉션 수정</h2>
 
@@ -407,7 +448,12 @@ const Admin_CollectionManager = () => {
 
             {/* 팝업 - 라벨 수정 */}
             {editingLabel && (
-                <div className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-30 flex justify-center items-center z-[10000]">
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-[10000] overscroll-none"
+                    onTouchMove={(e) => {
+                        if (e.target === e.currentTarget) e.preventDefault();
+                    }}
+                >
                     <div className="flex-col w-1/2 justify-center bg-white p-6 rounded shadow-xl">
                         <h2 className="text-lg font-bold mb-4">라벨 수정</h2>
                         <div className="flex justify-center mb-4">
@@ -527,7 +573,12 @@ const Admin_CollectionManager = () => {
             )}
 
             {isCreatePopupOpen && (
-                <div className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-30 flex justify-center items-center z-50">
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-[10000] overscroll-none"
+                    onTouchMove={(e) => {
+                        if (e.target === e.currentTarget) e.preventDefault();
+                    }}
+                >
                     <div className="bg-white p-6 rounded shadow-xl">
                         <h2 className="text-lg font-bold mb-4">
                             컬렉션 등록

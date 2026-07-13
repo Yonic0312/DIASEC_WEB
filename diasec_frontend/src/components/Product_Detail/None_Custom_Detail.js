@@ -4,6 +4,7 @@ import axios from 'axios';
 import { MemberContext } from '../../context/MemberContext';
 import ProductDetailTabs from '../ProductDetailTabs/ProductDetailTabs';
 import { toast } from 'react-toastify';
+import { usePartner } from '../../context/PartnerContext';
 import { getDiscountedUnitPrice } from '../../utils/siteDiscount';
 import {
     SitePriceRow,
@@ -24,6 +25,7 @@ const None_Custom_Detail = () => {
     const pid = queryParams.get("pid");
     const [showGuestChoice, setShowGuestChoice] = useState(false); // 구매시 비회원 구매 상태
     const [product, setProduct] = useState(null);
+    const { partnerDiscount } = usePartner();
 
     // 모바일 구매버튼 바텀에 스티키
     const buyButtonSectionRef = useRef(null);
@@ -80,7 +82,7 @@ const None_Custom_Detail = () => {
     const [maxWidth, setMaxWidth] = useState(200.7); // 초기값: 가로 최대
     const [maxHeight, setMaxHeight] = useState(101.6); // 초기값: 세로 최대
 
-    const MAX_CUSTOM_ORDER_ITEMS = 10;
+    const MAX_CUSTOM_ORDER_ITEMS = 30;
     const canDeleteItem = customItems.length > 1;
     const isCustomOrderFull = customItems.length >= MAX_CUSTOM_ORDER_ITEMS;
 
@@ -169,7 +171,19 @@ const None_Custom_Detail = () => {
 
     // 입력 완료 후 반영
     const [widthInput, setWidthInput] = useState(String(Math.floor(width)));
+    const sizeHintConsumedRef = useRef(false);
+    const [showSizeAdjustHint, setShowSizeAdjustHint] = useState(false);
 
+    const activateSizeAdjustHint = () => {
+        if (sizeHintConsumedRef.current) return;
+        sizeHintConsumedRef.current = true;
+        setShowSizeAdjustHint(true);
+    };
+
+    const dismissSizeAdjustHint = () => {
+        setShowSizeAdjustHint(false);
+    };
+    
     useEffect(() => {
         setWidthInput(String(Math.floor(width)));
     }, [width]);
@@ -217,19 +231,33 @@ const None_Custom_Detail = () => {
     const previewHeight = height * CM_TO_PX;
 
     const priceTiers = [
-        { maxArea: 993.4, unitPrice: 45.3 },
-        { maxArea: 1327.9, unitPrice: 39.2 },
+        { maxArea: 993.4, unitPrice: 38.3 },
+        { maxArea: 1327.9, unitPrice: 37.2 },
         { maxArea: 2064.5, unitPrice: 33.6 },
-        { maxArea: 2477.4, unitPrice: 32.9 },
-        { maxArea: 3096.7, unitPrice: 32.2 },
-        { maxArea: 4967.2, unitPrice: 29.1 },
-        { maxArea: 6451.6, unitPrice: 28.9 },
-        { maxArea: 7741.9, unitPrice: 28.7 },
-        { maxArea: 8535.4, unitPrice: 28.1 },
-        { maxArea: 12133.0, unitPrice: 27.1 },
-        { maxArea: 18393.3, unitPrice: 26.4 },
+        { maxArea: 2477.4, unitPrice: 32.0 },
+        { maxArea: 3096.7, unitPrice: 30.2 },
+        { maxArea: 4967.2, unitPrice: 33.1 },
+        { maxArea: 6451.6, unitPrice: 25.9 },
+        { maxArea: 7741.9, unitPrice: 27.0 },
+        { maxArea: 8535.4, unitPrice: 22.1 },
+        { maxArea: 12133.0, unitPrice: 24.1 },
+        { maxArea: 18393.3, unitPrice: 28.4 },
         { maxArea: 20503.4, unitPrice: 24.5 },
-        { maxArea: Infinity, unitPrice: 25.4 }, // 최종 fallback
+        { maxArea: Infinity, unitPrice: 27.4 }, // 최종 fallback
+
+        // { maxArea: 993.4, unitPrice: 45.3 },
+        // { maxArea: 1327.9, unitPrice: 39.2 },
+        // { maxArea: 2064.5, unitPrice: 33.6 },
+        // { maxArea: 2477.4, unitPrice: 32.9 },
+        // { maxArea: 3096.7, unitPrice: 32.2 },
+        // { maxArea: 4967.2, unitPrice: 29.1 },
+        // { maxArea: 6451.6, unitPrice: 28.9 },
+        // { maxArea: 7741.9, unitPrice: 28.7 },
+        // { maxArea: 8535.4, unitPrice: 28.1 },
+        // { maxArea: 12133.0, unitPrice: 27.1 },
+        // { maxArea: 18393.3, unitPrice: 26.4 },
+        // { maxArea: 20503.4, unitPrice: 24.5 },
+        // { maxArea: Infinity, unitPrice: 25.4 },
     ];
 
     // 기준 배경 px (디자인 사이즈)
@@ -315,7 +343,7 @@ const None_Custom_Detail = () => {
         : totalPriceWithoutShipping + SHIPPING_FEE;
 
     const totalPriceWithoutShippingDiscounted = customItems.reduce(
-        (acc, item) => acc + getDiscountedUnitPrice(item.price),
+        (acc, item) => acc + getDiscountedUnitPrice(item.price, partnerDiscount),
         0
     );
 
@@ -375,6 +403,8 @@ const None_Custom_Detail = () => {
                         }]);
 
                         setSelectedItemId("main-painting");
+
+                        activateSizeAdjustHint();
 
                         setTimeout(() => syncInputFromSelected({
                             id: "main-painting",
@@ -766,6 +796,7 @@ const None_Custom_Detail = () => {
                                     type="text"
                                     value={widthInput}
                                     onChange={(e) => {
+                                        dismissSizeAdjustHint();
                                         const onlyNumber = e.target.value.replace(/\D/g, '');
                                         setWidthInput(onlyNumber);
                                     }}
@@ -790,7 +821,11 @@ const None_Custom_Detail = () => {
                                     }}
                                     onWheel={(e) => e.preventDefault()}
                                     inputMode="numeric"
-                                    className="w-full border border-gray-500 rounded-md px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#D0AC88]"
+                                    className={`w-full border border-gray-500 rounded-md px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#D0AC88] ${
+                                        showSizeAdjustHint
+                                            ? 'size-adjust-hint-input border-2'
+                                            : 'border border-gray-500'
+                                    }`}
                                 />
                                 <input
                                     type="range"
@@ -799,6 +834,7 @@ const None_Custom_Detail = () => {
                                     step="0.1"
                                     value={width}
                                     onChange={(e) => {
+                                        dismissSizeAdjustHint();
                                         const value = parseFloat(e.target.value);
                                         if (!isNaN(value)) handleWidthChange(e);
                                     }}
@@ -822,7 +858,15 @@ const None_Custom_Detail = () => {
                             </div>
                         </div>
                         
-                        <span className="mt-1 text-[13.5px] text-gray-500">바를 움직이거나 직접 입력해 사이즈를 조정하세요</span>
+                        <span 
+                            className={`mt-1 text-[13.5px] ${
+                                showSizeAdjustHint
+                                    ? 'size-adjust-hint-text'
+                                    : 'text-gray-500'
+                            }`}
+                        >
+                            바를 움직이거나 직접 입력해 사이즈를 조정하세요
+                        </span>
 
                         <div className="w-full flex justify-between mt-2 gap-2">
                             {['A4', 'A3', 'A2', 'A1'].map(k => (
@@ -896,7 +940,7 @@ const None_Custom_Detail = () => {
                                     {customItems.map((item, idx) => (
                                     <div key={item.id} 
                                         onClick={() => setSelectedItemId(item.id)} 
-                                        className={`flex items-center gap-2 border rounded-xl p-[8px] shadow-sm cursor-pointer bg-white transition
+                                        className={`flex items-start gap-2 border rounded-xl p-[8px] shadow-sm cursor-pointer bg-white transition
                                             ${selectedItemId === item.id ? 'border-[#D0AC88] bg-[#fffaf3]' : 'hover:bg-[#fdf4ea]'}`}>
                                         <img 
                                             src={item.imageSrc}
@@ -906,7 +950,7 @@ const None_Custom_Detail = () => {
 
                                         {/* 우측 영역 */}
                                         <div className="flex-1 min-w-0 h-full">
-                                            <div className="flex items-start justify-between gap-2">
+                                            <div className="flex items-start justify-between md:gap-0 gap-2 min-h-[30px]">
                                                 <div className='flex-1 h-fit text-start'>
                                                     <p className='text-[12.5px] font-semibold text-gray-800'>
                                                         {Math.floor(item.width)} x {Math.floor(item.height)}cm
@@ -923,7 +967,7 @@ const None_Custom_Detail = () => {
                                                 {canDeleteItem && (
                                                     <button
                                                         type="button"
-                                                        className="w-6 h-6 border rounded-full flex items-center justify-center transition font-bold text-red-500 hover:text-white hover:bg-red-500 border-red-300"
+                                                        className='w-6 h-6 shrink-0 text-red-500 hover:text-white hover:bg-red-500 border border-red-300 rounded-full flex items-center justify-center transition'
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             const deleteId = item.id;

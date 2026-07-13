@@ -6,6 +6,8 @@ import { toast } from 'react-toastify';
 import { MemberContext } from '../../../context/MemberContext';
 import thumbCustom from '../../../assets/CustomFrames/customFrames.png';
 
+const REVIEWABLE_ORDER_STATUSES = ['배송완료', '교환완료'];
+
 const OrderDetail = () => {
     const API = process.env.REACT_APP_API_BASE;
     const { member } = useContext(MemberContext);
@@ -39,6 +41,34 @@ const OrderDetail = () => {
         return String(v).split(',').map(s => s.trim()).filter(Boolean);
     };
 
+    const buildDetailRequestConfig = () => {
+        const config = { withCredentials: true };
+        if (!member && guestPasswordFromSearch) {
+            config.params = { guestPassword: guestPasswordFromSearch };
+        }
+        return config;
+    };
+
+    const handleDetailAccessDenied = (err) => {
+        const message = err.response?.data?.error || '접근 권한이 없습니다.';
+        toast.error(message);
+        navigate(member ? '/orderList' : '/guestOrderSearch', { replace: true });
+    };
+
+    const fetchOrderDetail = async () => {
+        try {
+            const res = await axios.get(`${API}/order/detail/oid/${oid}`, buildDetailRequestConfig());
+            setOrder(res.data);
+        } catch (err) {
+            if (err.response?.status === 403 || err.response?.status === 401) {
+                handleDetailAccessDenied(err);
+                return;
+            }
+            console.error('주문 상세 불러오기 실패', err);
+            toast.error('주문 정보를 불러오지 못했습니다.');
+        }
+    };
+
     const statusBadge = (s) => {
         const base = "inline-flex px-2 py-0.5 rounded-full text-xs border";
         if (!s) return <span className={`${base} bg-gray-50 text-gray-600`}>미업로드</span>
@@ -70,12 +100,16 @@ const OrderDetail = () => {
                 throw new Error("잘못된 decision");
             }
 
+            // 비회원 주문조회에서 넘어온 경우 비밀번호 함께 전송
+            if (!member && guestPasswordFromSearch) {
+                body.guestPassword = guestPasswordFromSearch;
+            }
+
             const res = await axios.post(url, body, { withCredentials: true });
             if (!res.data?.success) throw new Error(res.data?.message || "처리 실패");
 
             toast.success(decision === "APPROVED" ? "승인 처리 완료" : "반려 처리 완료");
-            const fresh = await axios.get(`${API}/order/detail/oid/${oid}`, { withCredentials: true});
-            setOrder(fresh.data);
+            await fetchOrderDetail();
         } catch (e) {
             console.error(e);
             toast.error(e.message || "처리 중 오류");
@@ -163,6 +197,10 @@ const OrderDetail = () => {
                 retouchNote: retouchDraft.note || null,
             };
 
+            if (!member && guestPasswordFromSearch) {
+                payload.guestPassword = guestPasswordFromSearch;
+            }
+
             const res = await fetch(`${API}/order/update-retouch`, {
                 method: 'POST',
                 headers: { 'Content-Type' : 'application/json' },
@@ -177,9 +215,7 @@ const OrderDetail = () => {
                 setRetouchModalOpen(false);
                 setRetouchTargetItemId(null);
 
-                // 재조회
-                const fresh = await axios.get(`${API}/order/detail/oid/${oid}`, { withCredentials: true });
-                setOrder(fresh.data);
+                await fetchOrderDetail();
             } else {
                 toast.error("저장 실패: " + (data.message || ""));
             }
@@ -279,12 +315,8 @@ const OrderDetail = () => {
 
     // 아이템 불러오기
     useEffect(() => {
-        axios.get(`${API}/order/detail/oid/${oid}`, {
-            withCredentials : true
-        })
-            .then(res => setOrder(res.data))
-            .catch(err => console.error("주문 상세 불러오기 실패", err));
-    }, [oid]);
+        fetchOrderDetail();
+    }, [oid, member, guestPasswordFromSearch]);
 
     if (!order) return <div className="text-center py-20 text-gray-500">로딩 중...</div>;
 
@@ -409,7 +441,7 @@ const OrderDetail = () => {
 
     return (
         <>
-            <div className="w-full bg-white sm:px-8 px-2 sm:mx-4 mx-2 sm:py-10 py-5 shadow-md border border-gray-200 sm:space-y-8 space-y-4 mb-20">
+            <div className="w-full bg-white sm:px-8 px-2 sm:mx-4 mx-2 sm:py-10 py-5 shadow-md border border-gray-200 space-y-4 mb-20">
                 {/* Title */}
                 <div>
                     <div className='flex items-center justify-between'>
@@ -458,7 +490,7 @@ const OrderDetail = () => {
                                 </button>
                             )}
 
-                            {order.items.some((it) => it.orderStatus === '배송완료') && (
+                            {order.items.some((it) => REVIEWABLE_ORDER_STATUSES.includes(it.orderStatus)) && (
                                 member ? (
                                     <button
                                         className="
@@ -529,63 +561,65 @@ const OrderDetail = () => {
                 </div>
 
                 {/* 상품 정보 */}
-                {order.items.map((item, index) => (
-                    <div key={item.itemId || index}
-                        className="
-                            flex sm:gap-6 gap-[6px] items-start border rounded-lg
-                            md:p-6 p-2
-                            bg-gray-50 cursor-pointer transition-transform hover:shadow-lg hover:bg-gray-200"
-                        onClick={() => navigate(`/orderTracking/${item.itemId}`)}
-                    >
-                        <img
-                            src={
-                                item.category === 'customFrames'
-                                    ? item.thumbnailPreview || item.thumbnail || thumbCustom
-                                    : item.thumbnail
-                            }
-                            alt={item.title}
+                <div className="overflow-y-scroll h-[300px] space-y-2">
+                    {order.items.map((item, index) => (
+                        <div key={item.itemId || index}
                             className="
-                                md:w-24 sm:w-[clamp(5rem,10.95vw,6rem)] w-[clamp(72px,12.52vw,5rem)]
-                                md:h-24 sm:h-[clamp(5rem,10.95vw,6rem)] h-[clamp(72px,12.52vw,5rem)]
-                                object-cover rounded border" 
-                        />
-                        <div className="
-                            flex flex-col
-                            md:h-24 sm:h-[clamp(5rem,10.948vw,6rem)]
-                            text-[14px] md:text-[16px]
-                            flex-1 justify-between"
+                                flex sm:gap-6 gap-[4px] items-start border rounded-lg
+                                md:p-6 p-2
+                                bg-gray-50 cursor-pointer transition-transform hover:shadow-lg hover:bg-gray-200"
+                            onClick={() => navigate(`/orderTracking/${item.itemId}`)}
                         >
-                            <div className="flex justify-between flex-row font-semibold">
-                                <span className="min-w-0 flex-1 truncate pr-2">{item.title}</span>
-                                <span>{item.orderStatus}</span> {/* 상태 색 넣기!!!!!!!!!!!!! */}
-                            </div>
-                            <div>
-                                <div className="w-full flex flex-col sm:flex-row sm:justify-between">
-                                    <div>
-                                        {/*     md:text-sm sm:text-[11px] text-[9px] */}
-                                        <div className="
-                                            flex flex-col
-                                            md:text-[14px] text-[clamp(12px,1.8252vw,14px)]
-                                            text-gray-500"
-                                        >
-                                            <span className="text-black">카테고리: {convertCategoryName(item.category)} ({item.finishType === 'matte' ? '무광' : '유광'})</span>
-                                            <span>수량: {item.quantity}개</span>
-                                            <span>사이즈: {convertInchToCm(item.size)}</span>
+                            <img
+                                src={
+                                    item.category === 'customFrames'
+                                        ? item.thumbnailPreview || item.thumbnail || thumbCustom
+                                        : item.thumbnail
+                                }
+                                alt={item.title}
+                                className="
+                                    md:w-24 sm:w-[clamp(5rem,10.95vw,6rem)] w-[clamp(72px,12.52vw,5rem)]
+                                    md:h-24 sm:h-[clamp(5rem,10.95vw,6rem)] h-[clamp(72px,12.52vw,5rem)]
+                                    object-cover rounded border" 
+                            />
+                            <div className="
+                                flex flex-col
+                                md:h-24 sm:h-[clamp(5rem,10.948vw,6rem)]
+                                text-[14px] md:text-[16px]
+                                flex-1 justify-between"
+                            >
+                                <div className="flex justify-between flex-row font-semibold">
+                                    <span className="min-w-0 flex-1 truncate pr-2">{item.title}</span>
+                                    <span>{item.orderStatus}</span>
+                                </div>
+                                <div>
+                                    <div className="w-full flex flex-col sm:flex-row sm:justify-between">
+                                        <div>
+                                            {/*     md:text-sm sm:text-[11px] text-[9px] */}
+                                            <div className="
+                                                flex flex-col
+                                                md:text-[14px] text-[clamp(12px,1.8252vw,14px)]
+                                                text-gray-500"
+                                            >
+                                                <span className="text-black">카테고리: {convertCategoryName(item.category)} ({item.finishType === 'matte' ? '무광' : '유광'})</span>
+                                                <span>수량: {item.quantity}개</span>
+                                                <span>사이즈: {convertInchToCm(item.size)}</span>
+                                            </div>
                                         </div>
-                                    </div>
-                                        {/* md:text-base sm:text-[13px] text-[10px] */}
-                                    <div 
-                                        className="
-                                            text-[14px] md:text-[16px]
-                                            flex sm:items-end justify-end self-end
-                                            font-bold text-right mt-[2px]">
-                                        {(item.price)?.toLocaleString()}원
+                                            {/* md:text-base sm:text-[13px] text-[10px] */}
+                                        <div 
+                                            className="
+                                                text-[14px] md:text-[16px]
+                                                flex sm:items-end justify-end self-end
+                                                font-bold text-right mt-[2px]">
+                                            {(item.price)?.toLocaleString()}원
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                ))}
+                    ))}
+                </div>
 
                 {/* 반품 입력창 */}
                 {showReturnForm && order.items[0].orderStatus !== '반품신청' && (

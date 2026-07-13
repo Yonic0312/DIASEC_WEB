@@ -91,6 +91,32 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/uploads/customFrames/tmp").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/visit/track").permitAll() // 조회수
 
+                // 4. 비회원 주문 관련
+                .requestMatchers(
+                    "/api/order/insert", "/api/order/guest-search", "/api/order/detail/**",
+                    "/api/order/cancel", "/api/order/guest-reset-password", "/api/order/update-retouch",
+                    "/api/order/retouch/*/approve", "/api/order/retouch/*/reject"
+                ).permitAll()
+
+                // 방문자 집계 (비로그인 포함)
+                .requestMatchers(HttpMethod.POST, "/api/visit/track").permitAll()
+
+                
+
+                // 기업컨설팅 (비회원 신청·조회)
+                .requestMatchers(
+                    "/api/biz-consult/register",
+                    "/api/biz-consult/list",
+                    "/api/biz-consult/view/**",
+                    "/api/biz-consult/check-password",
+                    "/api/biz-consult/delete"
+                ).permitAll()
+
+                .requestMatchers(
+                    "/api/biz-partner/apply",
+                    "/api/biz-partner/my-status"
+                ).authenticated()
+
                 .requestMatchers(HttpMethod.POST, "/api/review/guest-eligible", "/api/review/guest-write").permitAll()
 
                 // 5. 관리자

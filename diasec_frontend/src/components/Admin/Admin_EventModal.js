@@ -43,6 +43,35 @@ const EventModal = ({ onClose, onSuccess, event }) => {
     const [previewThumbnail, setPreviewThumbnail] = useState(event?.thumbnailUrl || "");
     const [previewDetail, setPreviewDetail] = useState(event?.detailImageUrl || "");
 
+    // 모달 열림 시 배경 스크롤 잠금
+    useEffect(() => {
+        const scrollY = window.scrollY;
+        const prevOverflow = document.body.style.overflow;
+
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollY}px`;
+        document.body.style.left = '0';
+        document.body.style.right = '0';
+        document.body.style.width = '100%';
+        document.body.style.overflow = 'hidden';
+
+        const onKey = (e) => {
+            if (e.key === 'Escape' && onClose) onClose();
+        };
+        window.addEventListener('keydown', onKey);
+
+        return () => {
+            window.removeEventListener('keydown', onKey);
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.left = '';
+            document.body.style.right = '';
+            document.body.style.width = '';
+            document.body.style.overflow = prevOverflow;
+            window.scrollTo(0, scrollY);
+        };
+    }, [onClose]);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -84,8 +113,13 @@ const EventModal = ({ onClose, onSuccess, event }) => {
     }
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-[10000]">
-            <div className="bg-white p-6 rounded-lg w-full max-w-md relative shadow-xl">
+        <div
+            className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-[10000] overscroll-none"
+            onTouchMove={(e) => {
+                if (e.target === e.currentTarget) e.preventDefault();
+            }}
+        >
+            <div className="bg-white p-6 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto relative shadow-xl">
                 <h3 className="text-lg font-bold mb-4">
                     {isEdit ? "이벤트 수정" : "이벤트 등록"}
                 </h3>

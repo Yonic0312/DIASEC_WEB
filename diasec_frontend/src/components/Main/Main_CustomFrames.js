@@ -2,6 +2,7 @@ import { useState, useEffect, useLayoutEffect, useContext, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom';
 import { MemberContext } from '../../context/MemberContext';
 import { toast } from 'react-toastify';
+import { usePartner } from '../../context/PartnerContext';
 import { v4 as uuidv4 } from 'uuid';
 
 import bg from '../../assets/CustomFrames/p.png'; // 전에 내가 만든 배경
@@ -66,6 +67,7 @@ const Main_CustomFrames = () => {
     const presetKey = searchParams.get('preset');
     const initialExampleImage = presetImageMap[presetKey] || ex;
     const CUSTOM_FRAME_TAB_PRODUCT = { pid: -3 };
+    const { partnerDiscount } = usePartner();
 
     const [width, setWidth] = useState(35.6);
     const [height, setHeight] = useState(27.9);
@@ -327,6 +329,7 @@ const Main_CustomFrames = () => {
                     price: 0,
                     finishType: 'glossy',
                     retouch: { enabled: false, types: [], note: '' },
+                    quantity: 1,
                     isUploading: true,
                 }
             ]); 
@@ -381,10 +384,22 @@ const Main_CustomFrames = () => {
                         price,
                         finishType: 'glossy',
                         retouch: { enabled: false, types: [], note: '' },
+                        quantity: 1,
                         isUploading: false,
                     };
                     setCustomItems(prev => prev.map(it => (it.id === tempId ? newItem : it)));
                     setSelectedItemId(tempId);
+                    activateSizeAdjustHint();
+                    toast.success(
+                        <>
+                            이미지가 등록되었습니다.
+                            <br />
+                            원하는 크기로 조정해 보세요.
+                            <br />
+                            사이즈에 따라 상품 가격이 자동으로 계산됩니다.
+                        </>,
+                        { autoClose: 9000 }
+                    );
                 } finally {
                     URL.revokeObjectURL(objectUrl);
                 }
@@ -402,7 +417,19 @@ const Main_CustomFrames = () => {
 
     // 입력 완료 후 반영(딜레이 입력)
     const [widthInput, setWidthInput] = useState(String(Math.floor(width)));
+    const sizeHintConsumedRef = useRef(false);
+    const [showSizeAdjustHint, setShowSizeAdjustHint] = useState(false);
     const [toastCooldown, setToastCooldown] = useState(false);
+
+    const activateSizeAdjustHint = () => {
+        if (sizeHintConsumedRef.current) return;
+        sizeHintConsumedRef.current = true;
+        setShowSizeAdjustHint(true);
+    };
+
+    const dismissSizeAdjustHint = () => {
+        setShowSizeAdjustHint(false);
+    };
 
     const showToastOnce = (message) => {
         if (!toastCooldown) {
@@ -456,21 +483,36 @@ const Main_CustomFrames = () => {
     const previewWidth = width * CM_TO_PX;
     const previewHeight = height * CM_TO_PX;
 
-    const priceTiers = [
-        { maxArea: 993.4, unitPrice: 45.3 },
-        { maxArea: 1327.9, unitPrice: 39.2 },
+    const priceTiers = [ // 6원씩
+        { maxArea: 993.4, unitPrice: 38.3 },
+        { maxArea: 1327.9, unitPrice: 37.2 },
         { maxArea: 2064.5, unitPrice: 33.6 },
-        { maxArea: 2477.4, unitPrice: 32.9 },
-        { maxArea: 3096.7, unitPrice: 32.2 },
-        { maxArea: 4967.2, unitPrice: 29.1 },
-        { maxArea: 6451.6, unitPrice: 28.9 },
-        { maxArea: 7741.9, unitPrice: 28.7 },
-        { maxArea: 8535.4, unitPrice: 28.1 },
-        { maxArea: 12133.0, unitPrice: 27.1 },
-        { maxArea: 18393.3, unitPrice: 26.4 },
+        { maxArea: 2477.4, unitPrice: 32.0 },
+        { maxArea: 3096.7, unitPrice: 30.2 },
+        { maxArea: 4967.2, unitPrice: 33.1 },
+        { maxArea: 6451.6, unitPrice: 25.9 },
+        { maxArea: 7741.9, unitPrice: 27.0 },
+        { maxArea: 8535.4, unitPrice: 22.1 },
+        { maxArea: 12133.0, unitPrice: 24.1 },
+        { maxArea: 18393.3, unitPrice: 28.4 },
         { maxArea: 20503.4, unitPrice: 24.5 },
-        { maxArea: Infinity, unitPrice: 25.4 }, // 최종 fallback
+        { maxArea: Infinity, unitPrice: 27.4 }, // 최종 fallback
+
+        // { maxArea: 993.4, unitPrice: 45.3 },
+        // { maxArea: 1327.9, unitPrice: 39.2 },
+        // { maxArea: 2064.5, unitPrice: 33.6 },
+        // { maxArea: 2477.4, unitPrice: 32.9 },
+        // { maxArea: 3096.7, unitPrice: 32.2 },
+        // { maxArea: 4967.2, unitPrice: 29.1 },
+        // { maxArea: 6451.6, unitPrice: 28.9 },
+        // { maxArea: 7741.9, unitPrice: 28.7 },
+        // { maxArea: 8535.4, unitPrice: 28.1 },
+        // { maxArea: 12133.0, unitPrice: 27.1 },
+        // { maxArea: 18393.3, unitPrice: 26.4 },
+        // { maxArea: 20503.4, unitPrice: 24.5 },
+        // { maxArea: Infinity, unitPrice: 25.4 },
     ];
+    
 
     // 기준 배경 px (디자인 사이즈)
     const BASE_BG_W = 958;
@@ -547,6 +589,7 @@ const Main_CustomFrames = () => {
 
     const actualMaxWidth = getActualMaxWidth();
     const isCustomOrderFull = customItems.length >= MAX_CUSTOM_ORDER_ITEMS;
+    const showImageUploadHint = customItems.length === 0;
     const UploadAreaTag = isCustomOrderFull ? 'div' : 'label';
 
     // 이미지 드래그 앤 드랍 이벤트 핸들러
@@ -569,21 +612,37 @@ const Main_CustomFrames = () => {
     const SHIPPING_FEE = 3000; // 기본 배송비
     const FREE_SHIPPING_THRESHOLD = 50000; // - 이상 무료
     
-    // 가격 계산 로직 추가
-    const totalPriceWithoutShipping = customItems.reduce((acc, item) => {
-        if (item.isUploading) return acc;
-        const area = item.width * item.height;
-        return acc + calculateCumulativePrice(area);
-    }, 0);
+    // 가격 계산: 등록 이미지 합산, 없으면 예시 이미지(현재 사이즈) 기준 미리보기
+    const examplePreviewPrice =
+        customItems.length === 0 && aspectRatio && width > 0 && height > 0
+            ? calculateCumulativePrice(width * height)
+            : 0;
+
+    const totalPriceWithoutShipping =
+        customItems.length > 0
+            ? customItems.reduce((acc, item) => {
+                if (item.isUploading) return acc;
+                const area = item.width * item.height;
+                const qty = item.quantity ?? 1;
+                return acc + calculateCumulativePrice(area) * qty;
+            }, 0)
+            : examplePreviewPrice;
 
     const totalPrice = totalPriceWithoutShipping >= FREE_SHIPPING_THRESHOLD
         ? totalPriceWithoutShipping
         : totalPriceWithoutShipping + SHIPPING_FEE;
-    
-    const totalPriceWithoutShippingDiscounted = customItems.reduce(
-        (acc, item) => (item.isUploading ? acc : acc + getDiscountedUnitPrice(item.price)),
-        0
-    );
+
+    const totalPriceWithoutShippingDiscounted =
+        customItems.length > 0
+            ? customItems.reduce(
+                (acc, item) => {
+                    if (item.isUploading) return acc;
+                    const qty = item.quantity ?? 1;
+                    return acc + getDiscountedUnitPrice(item.price, partnerDiscount) * qty;
+                },
+                0
+            )
+            : getDiscountedUnitPrice(examplePreviewPrice, partnerDiscount);
     
     // 바로구매 (결제)
     const handleBuyNow = () => {
@@ -624,7 +683,7 @@ const Main_CustomFrames = () => {
             thumbnailPreviewFile: item.thumbnailPreviewFile,
             size: toInchSize(item.width, item.height),
             category:'customFrames',
-            quantity:'1',
+            quantity: String(item.quantity ?? 1),
             finishType: item.finishType ?? 'glossy',
 
             retouchEnabled: enabledVal,
@@ -642,7 +701,7 @@ const Main_CustomFrames = () => {
         { title: '라인 보정', before: custom5, after: custom6},
         { title: '색감 보정', before: custom7, after: custom8},
         { title: '배경 정리', before: custom9, after: custom10},
-        { title: '고해상도 업스케일', before: custom11, after: custom12},
+        { title: '사진 업스케일링', before: custom11, after: custom12},
     ];
 
     const retouchOptions = beforeAfterData.map(v => v.title);
@@ -678,6 +737,49 @@ const Main_CustomFrames = () => {
         setRetouchTargetId(null);
     };
 
+    const isAnyModalOpen =
+        showGuestChoice || retouchModalOpen || (isAdmin && adminQuoteModalOpen);
+
+    // 모달 열림 시 배경 스크롤 잠금
+    useEffect(() => {
+        if (!isAnyModalOpen) return;
+
+        const scrollY = window.scrollY;
+        const prevOverflow = document.body.style.overflow;
+
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollY}px`;
+        document.body.style.left = '0';
+        document.body.style.right = '0';
+        document.body.style.width = '100%';
+        document.body.style.overflow = 'hidden';
+
+        const onKey = (e) => {
+            if (e.key !== 'Escape') return;
+            if (isAdmin && adminQuoteModalOpen) setAdminQuoteModalOpen(false);
+            else if (retouchModalOpen) closeRetouchModal();
+            else if (showGuestChoice) setShowGuestChoice(false);
+        };
+        window.addEventListener('keydown', onKey);
+
+        return () => {
+            window.removeEventListener('keydown', onKey);
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.left = '';
+            document.body.style.right = '';
+            document.body.style.width = '';
+            document.body.style.overflow = prevOverflow;
+            window.scrollTo(0, scrollY);
+        };
+    }, [
+        isAnyModalOpen,
+        isAdmin,
+        adminQuoteModalOpen,
+        retouchModalOpen,
+        showGuestChoice,
+    ]);
+
     const clearRetouch = (itemId) => {
         setCustomItems(prev =>
             prev.map(it => 
@@ -689,6 +791,16 @@ const Main_CustomFrames = () => {
         if (retouchTargetId === itemId) {
             closeRetouchModal();
         }
+    };
+
+    const updateItemQuantity = (itemId, delta) => {
+        setCustomItems(prev =>
+            prev.map(it =>
+                it.id === itemId
+                    ? { ...it, quantity: Math.max(1, (it.quantity ?? 1) + delta) }
+                    : it
+            )
+        );
     };
 
     const saveRetouch = () => {
@@ -886,7 +998,7 @@ const Main_CustomFrames = () => {
                             style={{ 
                                 width: `${paperWidthPct}%`,
                                 height: `${paperHeightPct}%`,
-                                top: '30%',
+                                top: '34%',
                                 left: '50%',
                                 transform: 'translate(-50%, -50%)',
                                 background: 'rgba(255,255,255)',
@@ -956,8 +1068,12 @@ const Main_CustomFrames = () => {
                                         transition-colors duration-200 
                                         ${ isDragging ? 'border-[#ccc26c] bg-[#fdebd4]' : 'border-dashed border-gray-400'}
                                         ${isCustomOrderFull
-                                            ? 'opacity-50 cursor-not-allowed'
-                                            : 'cursor-pointer hover:border-[#ccc26c] hover:bg-[#fdebd4]'
+                                            ? 'opacity-50 cursor-not-allowed border-dashed border-gray-400 text-gray-500'
+                                            : isDragging
+                                                ? 'border-dashed border-[#ccc26c] bg-[#fdebd4] text-gray-500 cursor-pointer'
+                                                : showImageUploadHint
+                                                    ? 'size-adjust-hint-input border-dashed cursor-pointer'
+                                                    : 'border-dashed border-gray-400 text-gray-500 cursor-pointer hover:border-[#ccc26c] hover:bg-[#fdebd4]'
                                         }
                                     `}
                                     onDragEnter={(e) => {
@@ -1058,6 +1174,7 @@ const Main_CustomFrames = () => {
                                     type="text"
                                     value={widthInput}
                                     onChange={(e) => {
+                                        dismissSizeAdjustHint();
                                         const onlyNumber = e.target.value.replace(/\D/g, '');
                                         setWidthInput(onlyNumber);
                                     }}
@@ -1090,7 +1207,11 @@ const Main_CustomFrames = () => {
                                     }}
                                     onWheel={(e) => e.preventDefault()}
                                     inputMode="numeric"
-                                    className="w-full border border-gray-500 rounded-md px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#D0AC88]"
+                                    className={`w-full border rounded-md px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#D0AC88] ${
+                                        showSizeAdjustHint
+                                            ? 'size-adjust-hint-input border-2'
+                                            : 'border border-gray-500'
+                                    }`}
                                 />
                             </div>
                             
@@ -1115,6 +1236,7 @@ const Main_CustomFrames = () => {
                                 step="0.1"
                                 value={width}
                                 onChange={(e) => {
+                                    dismissSizeAdjustHint();
                                     const value = parseFloat(e.target.value);
                                     if (!isNaN(value)) handleWidthChange(e);
                                 }}
@@ -1124,7 +1246,15 @@ const Main_CustomFrames = () => {
                                     (약 { Math.floor(width / 2.54) } x { Math.floor(height / 2.54) } inch)
                             </span>
                         </div>
-                        <span className="mt-1 text-[13.5px] text-gray-500">바를 움직이거나 직접 입력해 사이즈를 조정하세요</span>
+                        <span
+                            className={`mt-1 text-[13.5px] ${
+                                showSizeAdjustHint
+                                    ? 'size-adjust-hint-text'
+                                    : 'text-black'
+                            }`}
+                        >
+                            바를 움직이거나 직접 입력해 사이즈를 조정하세요
+                        </span>
 
                         <div className="w-full flex justify-between mt-2 gap-2">
                             {['A4', 'A3', 'A2', 'A1'].map(k => (
@@ -1171,7 +1301,7 @@ const Main_CustomFrames = () => {
                                         <div 
                                             key={item.id} 
                                             onClick={() => setSelectedItemId(item.id)} 
-                                            className={`relative flex items-center gap-2 border rounded-2xl p-[8px] shadow-sm cursor-pointer bg-white transition
+                                            className={`relative flex items-start gap-2 border rounded-2xl p-[8px] shadow-sm cursor-pointer bg-white transition
                                                 ${selectedItemId === item.id ? 'border-[#D0AC88] bg-[#fffaf3]' : 'hover:bg-[#fdf4ea]'}`}>
                                             {/* 썸네일 */}
                                             <div className='w-[70px] h-[70px] rounded-md border overflow-hidden bg-gray-100 flex items-center justify-center'>
@@ -1202,9 +1332,40 @@ const Main_CustomFrames = () => {
                                                                 <p className="mt-[-4px] mb-[4px]">
                                                                     <SitePriceRow
                                                                         unitPrice={item.price}
+                                                                        quantity={item.quantity ?? 1}
                                                                         neutralClassName={`${SITE_PRICE_TEXT} text-gray-800`}
                                                                     />
                                                                 </p>
+                                                                {!item.isUploading && (
+                                                                    <div
+                                                                        className="flex items-center gap-1.5 mt-1"
+                                                                        onClick={(e) => e.stopPropagation()}
+                                                                    >
+                                                                        <button
+                                                                            type="button"
+                                                                            className="w-6 h-6 border rounded-md bg-white hover:bg-gray-100 text-[14px] font-bold flex items-center justify-center"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                updateItemQuantity(item.id, -1);
+                                                                            }}
+                                                                        >
+                                                                            -
+                                                                        </button>
+                                                                        <span className="min-w-[20px] text-center text-[13px] font-semibold">
+                                                                            {item.quantity ?? 1}
+                                                                        </span>
+                                                                        <button
+                                                                            type="button"
+                                                                            className="w-6 h-6 border rounded-md bg-white hover:bg-gray-100 text-[14px] font-bold flex items-center justify-center"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                updateItemQuantity(item.id, 1);
+                                                                            }}
+                                                                        >
+                                                                            +
+                                                                        </button>
+                                                                    </div>
+                                                                )}
                                                             </>
                                                         )}
                                                     </div>
@@ -1348,11 +1509,11 @@ const Main_CustomFrames = () => {
                             </div>
                             <span className="text-base font-semibold text-gray-700">
                                 총 결제금액 :{' '}
-                                <span className=" text-[#a57647]">
+                                <span>
                                     <SitePriceTotal
                                         original={totalPriceWithoutShipping}
                                         discounted={totalPriceWithoutShippingDiscounted}
-                                        className={`${SITE_PRICE_TEXT} font-semibold text-[#a57647]`}
+                                        className={`${SITE_PRICE_TEXT} font-semibold`}
                                     />
                                 </span>
                             </span>
@@ -1407,7 +1568,12 @@ const Main_CustomFrames = () => {
             
             {/* 여기부터 모달창 */}
             {showGuestChoice && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                <div
+                    className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-[10000] overscroll-none"
+                    onTouchMove={(e) => {
+                        if (e.target === e.currentTarget) e.preventDefault();
+                    }}
+                >
                     <div className="
                         bg-white p-8 rounded-lg shadow-lg 
                         w-[90%] max-w-md sm:max-w-lg text-center
@@ -1434,7 +1600,7 @@ const Main_CustomFrames = () => {
                                     thumbnailPreviewFile: item.thumbnailPreviewFile,
                                     size: toInchSize(item.width, item.height),
                                     category: 'customFrames',
-                                    quantity: '1',
+                                    quantity: String(item.quantity ?? 1),
                                     finishType: item.finishType ?? 'glossy',
                                     retouchEnabled: enabledVal,
                                     retouchTypes: enabledVal ? typesStr : null,
@@ -1474,7 +1640,7 @@ const Main_CustomFrames = () => {
                             thumbnailPreviewFile: item.thumbnailPreviewFile,
                             size: toInchSize(item.width, item.height),
                             category:'customFrames',
-                            quantity:'1',
+                            quantity: String(item.quantity ?? 1),
                             finishType: item.finishType ?? 'glossy',
 
                             retouchEnabled: enabledVal,
@@ -1507,8 +1673,10 @@ const Main_CustomFrames = () => {
             {/* 보정 요청 모달 */}
             {retouchModalOpen && (
                 <div
-                    className="fixed inset-0 bg-black/50 z-[10000] flex items-center justify-center"
-                    onClick={closeRetouchModal}
+                    className="fixed inset-0 bg-black/50 z-[10000] flex items-center justify-center overscroll-none"
+                    onTouchMove={(e) => {
+                        if (e.target === e.currentTarget) e.preventDefault();
+                    }}
                 >
                     <div
                         className="w-full h-[90%] overflow-y-scroll max-w-lg bg-white shadow-xl py-3 px-4 md:px-4 mx-4"
@@ -1696,9 +1864,11 @@ const Main_CustomFrames = () => {
 
             {isAdmin && adminQuoteModalOpen && (
                 <div
-                    className="fixed inset-0 z-[200] flex items-center justify-center bg-black/45 p-4"
+                    className="fixed inset-0 z-[200] flex items-center justify-center bg-black/45 p-4 overscroll-none"
                     role="presentation"
-                    // onClick={() => setAdminQuoteModalOpen(false)}
+                    onTouchMove={(e) => {
+                        if (e.target === e.currentTarget) e.preventDefault();
+                    }}
                 >
                     <div
                         role="dialog"
@@ -1747,7 +1917,7 @@ const Main_CustomFrames = () => {
                                 }
                                 const area = pw * ph;
                                 const original = calculateCumulativePrice(area);
-                                const discounted = getDiscountedUnitPrice(original);
+                                const discounted = getDiscountedUnitPrice(original, partnerDiscount);
                                 const pct = getSiteDiscountPercent();
                                 const hasDiscount = discounted < original;
                                 return (

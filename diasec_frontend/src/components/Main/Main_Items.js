@@ -19,7 +19,7 @@ function parseListScrollPayload(raw) {
             typeof o.y === "number" &&
             typeof o.page === "number" &&
             o.page >= 0 &&
-            (o.mode === "author" || o.mode === "home")
+            (o.mode === "author" || o.mode === "home" || o.mode === "labels")
         ) {
             return {
                 y: o.y,
@@ -30,6 +30,12 @@ function parseListScrollPayload(raw) {
                     typeof o.itemCount === "number" && o.itemCount >= 0
                         ? o.itemCount
                         : undefined,
+                selectedPeriod:
+                    typeof o.selectedPeriod === "string" ? o.selectedPeriod : undefined,
+                authorSearch:
+                    typeof o.authorSearch === "string" ? o.authorSearch : undefined,
+                sortMode:
+                    o.sortMode === "popular" || o.sortMode === "name" ? o.sortMode : undefined,
             };
         }
     } catch {
@@ -119,6 +125,62 @@ const Main_Items = () => {
     const prevAuthorForScrollRef = useRef(null);
     const prevAuthorForSearchResetRef = useRef(author);
     const postRestoreScrollYRef = useRef(null);
+    const restoreScrollTimerRef = useRef(null);
+    const userTookScrollControlRef = useRef(false);
+    const restoreScrollGuardCleanupRef = useRef(null);
+
+    const disarmScrollRestoreGuards = () => {
+        if (restoreScrollGuardCleanupRef.current) {
+            restoreScrollGuardCleanupRef.current();
+            restoreScrollGuardCleanupRef.current = null;
+        }
+    };
+
+    /** 복원 후 사용자가 직접 스크롤하면 지연 보정(1.2초·가격 로딩)을 중단 */
+    const armScrollRestoreGuards = (targetY) => {
+        disarmScrollRestoreGuards();
+        userTookScrollControlRef.current = false;
+        let suppressUntil = Date.now() + 250;
+
+        const releaseUserControl = () => {
+            userTookScrollControlRef.current = true;
+            postRestoreScrollYRef.current = null;
+            if (restoreScrollTimerRef.current) {
+                clearTimeout(restoreScrollTimerRef.current);
+                restoreScrollTimerRef.current = null;
+            }
+            document.documentElement.style.minHeight = "";
+            disarmScrollRestoreGuards();
+        };
+
+        const onUserInput = () => releaseUserControl();
+
+        const onScroll = () => {
+            if (Date.now() < suppressUntil) return;
+            if (targetY == null) return;
+            if (Math.abs(window.scrollY - targetY) > 60) {
+                releaseUserControl();
+            }
+        };
+
+        const bumpSuppress = () => {
+            suppressUntil = Date.now() + 250;
+        };
+
+        window.addEventListener("wheel", onUserInput, { passive: true });
+        window.addEventListener("touchstart", onUserInput, { passive: true });
+        window.addEventListener("keydown", onUserInput);
+        window.addEventListener("scroll", onScroll, { passive: true });
+
+        restoreScrollGuardCleanupRef.current = () => {
+            window.removeEventListener("wheel", onUserInput);
+            window.removeEventListener("touchstart", onUserInput);
+            window.removeEventListener("keydown", onUserInput);
+            window.removeEventListener("scroll", onScroll);
+        };
+
+        return bumpSuppress;
+    };
 
     useEffect(() => {
         const prev = window.history.scrollRestoration;
@@ -137,8 +199,14 @@ const Main_Items = () => {
         const raw = sessionStorage.getItem(key);
         const parsed = parseListScrollPayload(raw);
         const el = document.documentElement;
-        if (parsed && parsed.docH > 0) {
-            el.style.minHeight = `${parsed.docH}px`;
+        if (parsed) {
+            if (parsed.docH > 0) {
+                el.style.minHeight = `${parsed.docH}px`;
+            }
+            // API 복원 전에도 저장 위치로 먼저 이동 (맨 위 깜빡임 방지)
+            if (parsed.y > 0) {
+                window.scrollTo({ top: parsed.y, left: 0, behavior: "auto" });
+            }
         }
         return () => {
             el.style.minHeight = "";
@@ -195,12 +263,20 @@ const Main_Items = () => {
         });
     }, [type]);
 
+    // 검색어 단어 띄어쓰기 처리 헬퍼
+    const normalize = (s) => 
+        (s ?? "")
+            .normalize("NFKC")
+            .replace(/[\s\u00A0\u200B\uFEFF]+/g, "")
+            .toLowerCase();
+
     // 상단 미니 라벨 렌더링
     const miniFilteredLabels = miniLabels.filter(item => {
         const matchesPeriod = !selectedPeriod || item.times === selectedPeriod;
-        const matchesSearch = item.label.toLowerCase().includes(authorSearch.toLowerCase());
+        const q = normalize(authorSearch);
+        const matchesSearch = !q || normalize(item.label).includes(q);
         return matchesPeriod && matchesSearch;
-    });
+      });
 
     const miniSortedLabels = [...miniFilteredLabels].sort((a, b) => {
         if (sortMode === 'popular') {
@@ -223,16 +299,15 @@ const Main_Items = () => {
         return a.label.localeCompare(b.label, 'ko');
     });
 
-    // 타입이 바뀌면 초기화
+    // type 변경 시에만 라벨 초기화 (author 해제 시에는 스크롤 복원을 위해 유지)
     useEffect(() => {
         if (!["masterPiece", "koreanPainting"].includes(type)) return;
-        if (author) return;
 
         setLabels([]);
         setLabelPage(0);
         setLabelHasMore(true);
         setLabelLoading(false);
-    }, [type, author]);
+    }, [type]);
 
     const labelReqIdRef = useRef(0);
 
@@ -248,6 +323,10 @@ const Main_Items = () => {
         if (!["masterPiece", "koreanPainting"].includes(type)) return;
         if (author) return;
         if (!labelHasMore) return;
+
+        const key = getScrollKey();
+        const pending = parseListScrollPayload(sessionStorage.getItem(key));
+        if (pending?.mode === "labels") return;
 
         const reqId = ++labelReqIdRef.current;
 
@@ -283,6 +362,7 @@ const Main_Items = () => {
 
         const obs = new IntersectionObserver(([entry]) => {
             if (!entry.isIntersecting) return;
+            if (listRestoreInProgressRef.current) return;
 
             if (labelLoading || !labelHasMore) return;
             
@@ -346,22 +426,25 @@ const Main_Items = () => {
 
     const handleLabelClick = (label) => {
         setTitleSearch('');
+        if (["masterPiece", "koreanPainting"].includes(type) && !author) {
+            saveLabelsListScroll();
+        }
         navigate(`/main_Items?type=${type}&author=${encodeURIComponent(label)}`);
     }
 
-    const q = titleSearch.trim().toLowerCase();
+    const titleQuery = normalize(titleSearch);
 
     const filteredAuthorProducts = useMemo(() => {
-        return !q
+        return !titleQuery
             ? authorProducts
-            : authorProducts.filter(p => (p.title ?? "").toLowerCase().includes(q));
-    }, [authorProducts, q]);
+            : authorProducts.filter(p => normalize(p.title).includes(titleQuery));
+    }, [authorProducts, titleQuery]);
 
     const filteredHomeProducts = useMemo(() => {
-        return !q
+        return !titleQuery
             ? homeProducts
-            : homeProducts.filter(p => (p.title ?? "").toLowerCase().includes(q));
-    }, [homeProducts, q]);
+            : homeProducts.filter(p => normalize(p.title).includes(titleQuery));
+    }, [homeProducts, titleQuery]);
 
     // 검색 중이면 전부 보여주고, 검색 아닐 때만 visibleCount 적용
     const displayProducts = useMemo(() => {
@@ -413,7 +496,8 @@ const Main_Items = () => {
     // 작가 목록 가져오기
     const filteredLabels = labels.filter(item => {
         const matchesPeriod = !selectedPeriod || item.times === selectedPeriod;
-        const matchesSearch = item.label.toLowerCase().includes(authorSearch.toLowerCase());
+        const q = normalize(authorSearch);
+        const matchesSearch = !q || normalize(item.label).includes(q);
         return matchesPeriod && matchesSearch;
     });
 
@@ -470,7 +554,7 @@ const Main_Items = () => {
     /** 상품명 검색 시 DB 기준 총 개수 (디바운스) */
     useEffect(() => {
         if (!type) return;
-        const q = titleSearch.trim();
+        const q = normalize(titleSearch);
         if (!q) {
             setTitleFilterCount(null);
             setTitleFilterLoading(false);
@@ -598,6 +682,8 @@ const Main_Items = () => {
             if (!type || !author) return;
         } else if (parsed.mode === "home") {
             if (!type || author || ["masterPiece", "koreanPainting"].includes(type)) return;
+        } else if (parsed.mode === "labels") {
+            if (!type || author || !["masterPiece", "koreanPainting"].includes(type)) return;
         } else {
             return;
         }
@@ -606,9 +692,16 @@ const Main_Items = () => {
         listRestoreInProgressRef.current = true;
         authorReqIdRef.current += 1;
         homeReqIdRef.current += 1;
+        labelReqIdRef.current += 1;
 
         const finishScroll = () => {
-            postRestoreScrollYRef.current = parsed.y;
+            const isLabels = parsed.mode === "labels";
+            const bumpSuppress = isLabels ? null : armScrollRestoreGuards(parsed.y);
+
+            if (!isLabels) {
+                postRestoreScrollYRef.current = parsed.y;
+            }
+
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     const el = document.documentElement;
@@ -618,11 +711,28 @@ const Main_Items = () => {
                         left: 0,
                         behavior: "auto",
                     });
+                    bumpSuppress?.();
                     sessionStorage.removeItem(key);
+                    if (isLabels) {
+                        requestAnimationFrame(() => {
+                            document.documentElement.style.minHeight = "";
+                        });
+                    }
                 });
             });
-            setTimeout(() => {
-                if (postRestoreScrollYRef.current == null) return;
+
+            if (isLabels) return;
+
+            restoreScrollTimerRef.current = setTimeout(() => {
+                restoreScrollTimerRef.current = null;
+                if (userTookScrollControlRef.current) {
+                    disarmScrollRestoreGuards();
+                    return;
+                }
+                if (postRestoreScrollYRef.current == null) {
+                    disarmScrollRestoreGuards();
+                    return;
+                }
                 const yy = postRestoreScrollYRef.current;
                 const maxY = Math.max(
                     0,
@@ -631,6 +741,7 @@ const Main_Items = () => {
                 window.scrollTo({ top: Math.min(yy, maxY), left: 0, behavior: "auto" });
                 postRestoreScrollYRef.current = null;
                 document.documentElement.style.minHeight = "";
+                disarmScrollRestoreGuards();
             }, 1200);
         };
 
@@ -737,10 +848,68 @@ const Main_Items = () => {
             }
         };
 
+        const runLabels = async () => {
+            const reqId = labelReqIdRef.current;
+            const merged = [];
+            const ic =
+                typeof parsed.itemCount === "number" && parsed.itemCount >= 0
+                    ? parsed.itemCount
+                    : 0;
+            const batchesFromItems = ic > 0 ? Math.ceil(ic / PAGE_SIZE) : 0;
+            const ps = parsed.page;
+            const toExclusive =
+                ps <= 0
+                    ? Math.max(1, batchesFromItems || 1)
+                    : Math.max(ps, batchesFromItems || 0);
+                
+            if (typeof parsed.selectedPeriod === "string") {
+                setSelectedPeriod(parsed.selectedPeriod);
+            }
+            if (typeof parsed.authorSearch === "string") {
+                setAuthorSearch(parsed.authorSearch);
+            }
+            if (parsed.sortMode === "popular" || parsed.sortMode === "name") {
+                setSortMode(parsed.sortMode);
+            }
+
+            setLabelLoading(true);
+            try {
+                let lastLen = PAGE_SIZE;
+                for (let p = 0; p < toExclusive; p++) {
+                    if (cancelled || reqId !== labelReqIdRef.current) return;
+                        const offset = p * PAGE_SIZE;
+                        const res = await axios.get(`${API}/collections/labels`, {
+                            params: { type, size: PAGE_SIZE, offset },
+                        });
+                        const list = res.data ?? [];
+                        const seen = new Set(merged.map((x) => x.label));
+                        for (const item of list) {
+                            if (!seen.has(item.label)) {
+                                seen.add(item.label);
+                                merged.push(item);
+                            }
+                        }
+                        lastLen = list.length;
+                        if (list.length < PAGE_SIZE) break;
+                }
+                if (cancelled || reqId !== labelReqIdRef.current) return;
+                setLabels(merged);
+                setLabelPage(toExclusive);
+                setLabelHasMore(lastLen >= PAGE_SIZE);
+            } catch (e) {
+                console.error("목록 복원(작가 카드) 실패", e);
+                setLabelHasMore(false);
+            } finally {
+                if (reqId === labelReqIdRef.current) setLabelLoading(false);
+            }
+        };
+
         (async () => {
             try {
                 if (parsed.mode === "author") {
                     await runAuthor();
+                } else if (parsed.mode === "labels") {
+                    await runLabels();
                 } else {
                     await runHome();
                 }
@@ -753,6 +922,11 @@ const Main_Items = () => {
         return () => {
             cancelled = true;
             listRestoreInProgressRef.current = false;
+            if (restoreScrollTimerRef.current) {
+                clearTimeout(restoreScrollTimerRef.current);
+                restoreScrollTimerRef.current = null;
+            }
+            disarmScrollRestoreGuards();
         };
     }, [API, author, type, location.pathname, location.search]);
 
@@ -763,6 +937,20 @@ const Main_Items = () => {
             mode: author ? "author" : "home",
             page: author ? authorPage : homePage,
             itemCount: author ? authorProducts.length : homeProducts.length,
+        };
+        sessionStorage.setItem(getScrollKey(), JSON.stringify(payload));
+    };
+
+    const saveLabelsListScroll = () => {
+        const payload = {
+            y: window.scrollY,
+            docH: document.documentElement.scrollHeight,
+            mode: "labels",
+            page: labelPage,
+            itemCount: labels.length,
+            selectedPeriod: selectedPeriod || "",
+            authorSearch: authorSearch || "",
+            sortMode,
         };
         sessionStorage.setItem(getScrollKey(), JSON.stringify(payload));
     };
@@ -825,6 +1013,10 @@ const Main_Items = () => {
     useEffect(() => {
         const y = postRestoreScrollYRef.current;
         if (y == null) return;
+        if (userTookScrollControlRef.current) {
+            postRestoreScrollYRef.current = null;
+            return;
+        }
         if (displayProducts.length === 0) return;
 
         const allPriced = displayProducts.every((p) =>
@@ -835,6 +1027,11 @@ const Main_Items = () => {
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
                 if (postRestoreScrollYRef.current == null) return;
+                if (userTookScrollControlRef.current) {
+                    postRestoreScrollYRef.current = null;
+                    disarmScrollRestoreGuards();
+                    return;
+                }
                 const yy = postRestoreScrollYRef.current;
                 const maxY = Math.max(
                     0,
@@ -847,11 +1044,12 @@ const Main_Items = () => {
                 });
                 postRestoreScrollYRef.current = null;
                 document.documentElement.style.minHeight = "";
+                disarmScrollRestoreGuards();
             });
         });
     }, [itemPriceMap, displayProducts]);
 
-    const hasTitleSearch = titleSearch.trim().length > 0;
+    const hasTitleSearch = normalize(titleSearch).length > 0;
     const productCountText = !hasTitleSearch
         ? totalCount.toLocaleString()
         : titleFilterLoading
@@ -919,7 +1117,7 @@ const Main_Items = () => {
                                         sm:text-base text-[clamp(14px,2.503vw,16px)]
                                         flex overflow-x-auto no-scrollbar whitespace-nowrap md:gap-5 gap-3 text-gray-600 mt-1 ml-1 mb-1'>
                                     {[
-                                        "전체", "르네상스", "베네치아파", "바로크", "로코코", "신고전주의", "낭만주의", "사실주의", "인상주의", "신인상주의", "후기인상주의", "근대미술"
+                                        "전체", "르네상스", "바로크", "로코코", "신고전주의", "낭만주의", "사실주의", "인상주의", "신인상주의", "후기인상주의", "근대미술"
                                     ].map((period, idx) => (
                                         <button
                                             key={idx}
@@ -956,6 +1154,7 @@ const Main_Items = () => {
                                                     setSelectedLabel(period);
                                                     setAuthorSearch('');
                                                     setTitleSearch('');
+                                                    saveLabelsListScroll();
                                                     navigate(`/main_Items?type=${type}&author=${encodeURIComponent(period)}`);
                                                     return;
                                                 }
@@ -1046,7 +1245,10 @@ const Main_Items = () => {
                     {authorCards.map(item => (
                         <div
                             key={item.label}
-                            onClick={() => navigate(item.link)}
+                            onClick={() => {
+                                saveLabelsListScroll();
+                                navigate(item.link);
+                            }}
                             className="flex flex-col items-center border border-gray-300 rounded-xl cursor-pointer overflow-hidden hover:opacity-80 hover:shadow-lg"
                         >
                             <img 

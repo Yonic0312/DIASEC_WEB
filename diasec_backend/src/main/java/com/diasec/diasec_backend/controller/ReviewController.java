@@ -62,7 +62,7 @@ public class ReviewController {
         return reviewService.getEligibleReviews(id);
     }
 
-    /** 비회원: 주문번호 + 주문조회 비밀번호로 작성 가능한 배송완료 상품 목록 */
+    /** 비회원: 주문번호 + 주문조회 비밀번호로 작성 가능한 배송완료·교환완료 상품 목록 */
     @PostMapping("/guest-eligible")
     public ResponseEntity<?> getGuestEligible(@RequestBody Map<String, String> req) {
         try {
@@ -215,14 +215,12 @@ public class ReviewController {
     // 리뷰 리스트 가져오기
     @GetMapping("/list")
     public ResponseEntity<List<ReviewVo>> getReviews(@RequestParam int pid) {
-        System.out.println("/list!!" + ResponseEntity.ok(reviewService.getReviewsByPid(pid)));
         return ResponseEntity.ok(reviewService.getReviewsByPid(pid));
     }
 
     // 리뷰 리스트 전체 가져오기
     @GetMapping("/all")
     public ResponseEntity<List<ReviewVo>> getAllReviews() {
-        System.out.println("list : " + reviewService.getAllReviews());
         return ResponseEntity.ok(reviewService.getAllReviews());
     }
 
