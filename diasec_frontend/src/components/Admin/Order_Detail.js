@@ -842,6 +842,13 @@ const Order_Detail = () => {
                         </p>
                     </div>
                     <div className="flex gap-1 no-print">
+                        <button
+                            onClick={() => handlePrint()}
+                            className="px-3 py-1 border rounded bg-green-500 text-sm hover:bg-green-600 text-white"
+                        >
+                            인쇄하기★
+                        </button>
+                        
                         {order.items[0].category === 'customFrames' && order.items[0]?.thumbnail && (
                             <button
                                 className="px-2 py-1 text-[11px] font-medium border bg-gray-700 text-white rounded-xl hover:bg-gray-800 transition"
@@ -883,13 +890,6 @@ const Order_Detail = () => {
                             <option key={status} value={status}>{status}</option>
                         ))}
                         </select>
-
-                        <button
-                            onClick={() => handlePrint()}
-                            className="px-3 py-1 border rounded bg-white text-sm hover:bg-gray-100"
-                        >
-                            인쇄하기
-                        </button>
 
                         <button 
                             className="px-2 py-1 text-[11px] font-medium border bg-orange-500 text-white border-white rounded-xl hover:text-gray-300  transition" 
@@ -969,7 +969,7 @@ const Order_Detail = () => {
                             <span className="print-badge">
                                 {convertCategoryName(order.items[0].category)}
                             </span>
-                            <span className="print-badge print-badge-dark">
+                            <span className={item.finishType === 'matte' ? 'print-badge print-badge-dark' : 'print-badge'}>
                                  {item.finishType === 'matte' ? '무광' : '유광'}
                             </span>
                             <span className="print-badge">

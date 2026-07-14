@@ -408,7 +408,7 @@ const Main_CustomFrames = () => {
                             <br />
                             원하는 크기로 조정해 보세요.
                             <br />
-                            사이즈에 따라 상품 가격이 자동으로 계산됩니다.
+                            사이즈에 따라 작품 가격이 자동으로 계산됩니다.
                         </>,
                         { autoClose: 9000 }
                     );
@@ -754,6 +754,7 @@ const Main_CustomFrames = () => {
 
     const isCustomOrderFull = customItems.length >= MAX_CUSTOM_ORDER_ITEMS;
     const showImageUploadHint = customItems.length === 0;
+    const showSizeAdjustHintActive = showSizeAdjustHint && customItems.length > 0;
     const UploadAreaTag = isCustomOrderFull ? 'div' : 'label';
 
     // 이미지 드래그 앤 드랍 이벤트 핸들러
@@ -1351,7 +1352,7 @@ const Main_CustomFrames = () => {
                                     onWheel={(e) => e.preventDefault()}
                                     inputMode="numeric"
                                     className={`w-full border rounded-md px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#D0AC88] ${
-                                        showSizeAdjustHint
+                                        showSizeAdjustHintActive
                                             ? 'size-adjust-hint-input border-2'
                                             : 'border border-gray-500'
                                     }`}
@@ -1390,7 +1391,7 @@ const Main_CustomFrames = () => {
                                 onWheel={(e) => e.preventDefault()}
                                 inputMode="numeric"
                                 className={`w-full border rounded-md px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#D0AC88] ${
-                                    showSizeAdjustHint
+                                    showSizeAdjustHintActive
                                         ? 'size-adjust-hint-input border-2'
                                         : 'border border-gray-500'
                                 }`}
@@ -1418,7 +1419,7 @@ const Main_CustomFrames = () => {
                         </div>
                         <span
                             className={`mt-1 text-[13.5px] ${
-                                showSizeAdjustHint
+                                showSizeAdjustHintActive
                                     ? 'size-adjust-hint-text'
                                     : 'text-black'
                             }`}
