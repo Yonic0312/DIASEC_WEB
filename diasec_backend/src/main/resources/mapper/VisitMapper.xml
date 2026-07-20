@@ -16,4 +16,14 @@
     <select id="countTotal" resultType="int">
         SELECT COUNT(*) FROM visit_log
     </select>
+
+    <select id="countByDateRange" resultType="map">
+        SELECT
+            visit_date AS visitDate,
+            COUNT(*) AS cnt
+        FROM visit_log
+        WHERE visit_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY visit_date
+        ORDER BY visit_date ASC
+    </select>
   </mapper>
