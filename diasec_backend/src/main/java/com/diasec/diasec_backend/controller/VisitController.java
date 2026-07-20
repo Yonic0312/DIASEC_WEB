@@ -35,7 +35,7 @@ public class VisitController {
         return ResponseEntity.ok(visitService.getStats());
     }
 
-    /** 최근 N일 일별 방문자 (기본 30, 최대 90) */
+    /** 최근 N일 일별 방문자 (기본 30). days=0 이면 전체 */
     @GetMapping("/admin/visit/daily")
     public ResponseEntity<List<Map<String, Object>>> daily(
             @RequestParam(defaultValue = "30") int days

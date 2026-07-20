@@ -76,7 +76,7 @@ function VisitDailyModal({ open, onClose, days, setDays, daily, loading }) {
 
     return (
         <div
-            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/45 p-4"
+            className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/45 p-4"
             role="presentation"
             onClick={onClose}
         >
@@ -107,7 +107,7 @@ function VisitDailyModal({ open, onClose, days, setDays, daily, loading }) {
                 </div>
 
                 <div className="px-5 py-3 flex flex-wrap items-center gap-2 border-b border-gray-50">
-                    {[7, 14, 30, 90].map((d) => (
+                    {[7, 14, 30, 90, 0].map((d) => (
                         <button
                             key={d}
                             type="button"
@@ -118,7 +118,7 @@ function VisitDailyModal({ open, onClose, days, setDays, daily, loading }) {
                                     : 'bg-white text-gray-600 border-gray-300 hover:border-[#D0AC88]'
                             }`}
                         >
-                            최근 {d}일
+                            {d === 0 ? '전체' : `최근 ${d}일`}
                         </button>
                     ))}
                     <div className="ml-auto text-xs text-gray-600 flex flex-wrap gap-3">

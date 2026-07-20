@@ -26,4 +26,8 @@
         GROUP BY visit_date
         ORDER BY visit_date ASC
     </select>
+
+    <select id="selectMinVisitDate" resultType="java.time.LocalDate">
+        SELECT MIN(visit_date) FROM visit_log
+    </select>
   </mapper>

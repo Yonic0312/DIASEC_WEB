@@ -39,11 +39,19 @@ public class VisitService {
         );
     }
 
-    /** 최근 N일(오늘 포함) 일별 방문자 수. 방문 없는 날은 0으로 채움 */
+    /** 최근 N일(오늘 포함) 일별 방문자. days &lt;= 0 이면 첫 방문일~오늘 전체 */
     public List<Map<String, Object>> getDailyStats(int days) {
-        int safeDays = Math.min(90, Math.max(1, days));
         LocalDate end = LocalDate.now(KOREA);
-        LocalDate start = end.minusDays(safeDays - 1L);
+        LocalDate start;
+
+        if (days <= 0) {
+            LocalDate minDate = visitMapper.selectMinVisitDate();
+            if (minDate == null) return List.of();
+            start = minDate;
+        } else {
+            int safeDays = Math.min(365, Math.max(1, days));
+            start = end.minusDays(safeDays - 1L);
+        }
 
         Map<String, Integer> counted = new HashMap<>();
         for (Map<String, Object> row : visitMapper.countByDateRange(start, end)) {
@@ -56,7 +64,7 @@ public class VisitService {
             counted.put(dateKey, ((Number) cntVal).intValue());
         }
 
-        List<Map<String, Object>> result = new ArrayList<>(safeDays);
+        List<Map<String, Object>> result = new ArrayList<>();
         for (LocalDate d = start; !d.isAfter(end); d = d.plusDays(1)) {
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("date", d.toString());

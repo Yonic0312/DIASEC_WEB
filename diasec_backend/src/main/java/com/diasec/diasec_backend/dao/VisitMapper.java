@@ -19,4 +19,6 @@ public interface VisitMapper {
 
         List<Map<String, Object>> countByDateRange(@Param("startDate") LocalDate startDate,
                                                    @Param("endDate") LocalDate endDate);
+
+        LocalDate selectMinVisitDate();
 }

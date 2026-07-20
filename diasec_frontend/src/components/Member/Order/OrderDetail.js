@@ -490,7 +490,11 @@ const OrderDetail = () => {
                                 </button>
                             )}
 
-                            {order.items.some((it) => REVIEWABLE_ORDER_STATUSES.includes(it.orderStatus)) && (
+                            {order.items.some(
+                                (it) =>
+                                    REVIEWABLE_ORDER_STATUSES.includes(it.orderStatus) &&
+                                    !it.reviewed
+                            ) && (
                                 member ? (
                                     <button
                                         className="
