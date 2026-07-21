@@ -588,7 +588,7 @@ const OrderDetail = () => {
                 </div>
 
                 {/* 상품 정보 */}
-                <div className="overflow-y-scroll h-[300px] space-y-2">
+                <div className="overflow-y-scroll max-h-[300px] space-y-2">
                     {order.items.map((item, index) => (
                         <div key={item.itemId || index}
                             className="

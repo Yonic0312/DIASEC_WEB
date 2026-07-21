@@ -362,8 +362,24 @@ function Layout() {
     const { setMember } = useMember();
 
     useEffect(() => {
-        axios.post(`${API}/visit/track`, {}, { withCredentials: true })
-            .catch(() => {});
+        const sendHeartbeat = () => {
+            if (document.visibilityState === 'hidden') return;
+            axios.post(`${API}/visit/track`, {}, { withCredentials: true })
+                .catch(() => {});
+        };
+
+        sendHeartbeat();
+        const id = setInterval(sendHeartbeat, 30_000);
+
+        const onVisibility = () => {
+            if (document.visibilityState === 'visible') sendHeartbeat();
+        };
+        document.addEventListener('visibilitychange', onVisibility);
+
+        return () => {
+            clearInterval(id);
+            document.removeEventListener('visibilitychange', onVisibility);
+        };
     }, [API]);
 
     useEffect(() => {
