@@ -39,6 +39,9 @@ public interface OrderMapper {
     // oid로 주문정보 + 주문상품 목록 조회
     OrderVo selectOrderByOid(@Param("oid") Long oid);
 
+    // 비회원: 주문자 휴대폰(숫자만)으로 후보 주문 조회
+    List<OrderVo> selectGuestOrdersByOrdererPhoneDigits(@Param("phoneDigits") String phoneDigits);
+
     // 3. 상세페이지로 들어갈 itemId 개별 주문 상품 조회
     OrderItemsVo selectOrderItemById(@Param("itemId") Long itemId);
 
