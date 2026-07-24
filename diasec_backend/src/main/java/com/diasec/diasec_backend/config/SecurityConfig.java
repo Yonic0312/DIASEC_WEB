@@ -101,6 +101,7 @@ public class SecurityConfig {
 
                 // 방문자 집계 (비로그인 포함)
                 .requestMatchers(HttpMethod.POST, "/api/visit/track").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/site-setting/**").permitAll()
 
                 
 
