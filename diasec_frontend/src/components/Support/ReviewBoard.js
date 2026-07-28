@@ -156,14 +156,8 @@ const ReviewBoard = () => {
             <ul className='divide-y border-y'>
                 {currentReviews.map((review, i) => (
                     <li key={i} className='
-                        flex gap-4 py-6 cursor-pointer' onClick={() => setSelectedReview(review)}>
+                        flex gap-4 py-4 cursor-pointer' onClick={() => setSelectedReview(review)}>
                         <div className='flex-1'>
-                            <div className="
-                                md:text-sm text-[clamp(12px,1.825vw,14px)]
-                                flex items-center justify-between text-gray-400">
-                                <span>{review.id.slice(0, 2)}***님</span>
-                                <span>{review.createdAt?.slice(2, 10).replaceAll('-', '.')}</span>
-                            </div>
                             <div className="
                                 md:text-[16px] text-[clamp(12px,2.085vw,16px)]
                                 font-semibold text-gray-700">
@@ -200,6 +194,12 @@ const ReviewBoard = () => {
                                             object-cover rounded border"
                                     />
                                 ))}
+                            </div>
+                            <div className="
+                                md:text-sm text-[clamp(12px,1.825vw,14px)]
+                                flex items-center justify-between text-gray-400 mt-3">
+                                <span>{review.id.slice(0, 2)}***님</span>
+                                <span>{review.createdAt?.slice(2, 10).replaceAll('-', '.')}</span>
                             </div>
                         </div>
                     </li>
