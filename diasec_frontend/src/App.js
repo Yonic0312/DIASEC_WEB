@@ -458,11 +458,7 @@ function Layout() {
             `}> 
                 {isMain && (
                     <div className="
-                        xl:mt-32
-                        lg:mt-28
-                        md:mt-24
-                        mt-20">
-                        
+                        mt-14">
                     </div>
                 )}
 
