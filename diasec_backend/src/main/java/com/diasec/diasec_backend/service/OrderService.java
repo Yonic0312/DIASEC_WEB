@@ -136,6 +136,11 @@ public class OrderService {
     public Long getOidByItemId(Long itemId) {
         return orderMapper.selectOidByItemId(itemId);
     }
+
+    public OrderItemsVo selectOrderItemById(Long itemId) {
+        return orderMapper.selectOrderItemById(itemId);
+    }
+
     public OrderVo selectOrderByOid(Long oid) {
         OrderVo order = orderMapper.selectOrderByOid(oid);
         List<OrderItemsVo> items = orderMapper.selectOrderItems(oid);
