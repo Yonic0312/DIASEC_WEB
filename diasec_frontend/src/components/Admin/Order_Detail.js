@@ -116,6 +116,10 @@ const PRINT_ORDER_STYLES = `
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
+        .print-wrap .print-size-line {
+            font-size: 16px;
+            white-space: pre;
+        }
     }
 `;
 
@@ -612,7 +616,7 @@ const Order_Detail = () => {
         const cW = Math.max(0, wCm + 3);
         const cH = Math.max(0, hCm + 3);
 
-        return `${wCm} x ${hCm} cm | C: ${cW} x ${cH} | P: ${pW} x ${pH} | B: ${wCm + 5} x ${hCm + 5}`;
+        return `${wCm} x ${hCm} cm\u00A0\u00A0|\u00A0\u00A0C: ${cW} x ${cH}\u00A0\u00A0|\u00A0\u00A0P: ${pW} x ${pH}\u00A0\u00A0|\u00A0\u00A0B: ${wCm + 5} x ${hCm + 5}`;
     }
 
     const convertCategoryName = (category) => {
@@ -994,7 +998,7 @@ const Order_Detail = () => {
                                 {(order.items[0].price * order.items[0].quantity).toLocaleString()}원
                             </div>
 
-                            <div>
+                            <div className="print-size-line whitespace-pre">
                                 <span className="print-label">사이즈:</span>
                                 {convertInchToCm(order.items[0].size)}
                             </div>            

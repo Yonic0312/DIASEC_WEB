@@ -34,5 +34,5 @@ public class EventService {
         eventMapper.deleteEvent(eventId);
     }
 }
-
     
+

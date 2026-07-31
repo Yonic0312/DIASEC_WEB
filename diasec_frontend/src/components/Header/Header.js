@@ -259,7 +259,7 @@ const Header = () => {
                             <div
                                 className={`
                                     absolute right-0 top-full
-                                    w-[110px]
+                                    w-[130px]
                                     rounded-2xl
                                     bg-white/95 backdrop-blur
                                     border border-black/10
@@ -302,6 +302,14 @@ const Header = () => {
                                         className="w-full text-left px-4 py-2 text-[13px] text-gray-700 bg-white hover:bg-[#ecd2af]/35 transition"
                                     >
                                         후기게시판
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => { navigate("/bulkOrderDiscount"); setSupportOpen(false);}}
+                                        className="w-full text-left px-4 py-2 text-[13px] text-gray-700 bg-white hover:bg-[#ecd2af]/35 transition"
+                                    >
+                                        대량주문할인
                                     </button>
 
                                     <button
