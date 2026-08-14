@@ -32,14 +32,18 @@ const None_Custom_Detail = () => {
     const [showBottomBuy, setShowBottomBuy] = useState(false);
 
     /** cm만 넣어 견적 확인(주문·이미지에 반영 안 함) */
-        const [adminQuoteModalOpen, setAdminQuoteModalOpen] = useState(false);
-        const [adminQuoteW, setAdminQuoteW] = useState('');
-        const [adminQuoteH, setAdminQuoteH] = useState('');
+    const [adminQuoteModalOpen, setAdminQuoteModalOpen] = useState(false);
+    const [adminQuoteW, setAdminQuoteW] = useState('');
+    const [adminQuoteH, setAdminQuoteH] = useState('');
 
-        const openAdminQuoteModal = () => {
-            setAdminQuoteW(String(Math.floor(width)));
-            setAdminQuoteH(String(Math.floor(height)));
-            setAdminQuoteModalOpen(true);
+    // 관리자만 볼 수 있는 버튼 (파트너 할인 적용/미적용)
+    const [adminQuoteApplyPartnerDiscount, setAdminQuoteApplyPartnerDiscount] = useState(false); // 기본: 파트너 할인 미적용
+
+    const openAdminQuoteModal = () => {
+        setAdminQuoteW(String(Math.floor(width)));
+        setAdminQuoteH(String(Math.floor(height)));
+        setAdminQuoteApplyPartnerDiscount(false);
+        setAdminQuoteModalOpen(true);
     };
 
     const applyAdminQuotePaper = (key) => {
@@ -1468,9 +1472,19 @@ const None_Custom_Detail = () => {
                 <div className="fixed md:hidden bottom-0 left-0 right-0 z-[20]">
                     <div className="w-full">
                         <button 
-                            className='flex items-center justify-center w-full h-[50px] bg-[#D0AC88] text-white'
+                            className='flex items-center justify-center w-full h-[50px] px-3 bg-[#D0AC88] text-white font-semibold gap-1.5'
                             onClick={(e) => handleBuyNow()}>
-                            바로구매
+                            {totalPriceWithoutShipping > 0 && totalPriceWithoutShippingDiscounted < totalPriceWithoutShipping && (
+                                <span className="text-[12px] font-normal line-through text-white/70">
+                                    {totalPriceWithoutShipping.toLocaleString()}원
+                                </span>
+                            )}
+                            {totalPriceWithoutShippingDiscounted > 0 && (
+                                <span className="text-[16px] font-bold">
+                                    {totalPriceWithoutShippingDiscounted.toLocaleString()}원
+                                </span>
+                            )}
+                            <span>바로구매</span>
                         </button>
                         <div className="flex flex-row">
                             <button 
@@ -1543,6 +1557,22 @@ const None_Custom_Detail = () => {
                             ))}
                         </div>
 
+                        {member?.role === 'ADMIN' && (
+                            <div className="mb-3 flex justify-end">
+                                <button
+                                    type="button"
+                                    onClick={() => setAdminQuoteApplyPartnerDiscount((v) => !v)}
+                                    className={`px-3 py-1.5 rounded-md border text-xs font-semibold transition ${
+                                        adminQuoteApplyPartnerDiscount
+                                            ? 'bg-white text-black border-green-500'
+                                            : 'bg-white text-black border-red-500'
+                                    }`}
+                                >
+                                    파트너 할인 {adminQuoteApplyPartnerDiscount ? '적용' : '미적용'}
+                                </button>
+                            </div>
+                        )}
+
                         <div className="rounded-lg bg-gray-50 border border-gray-200 p-4 mb-3 min-h-[88px]">
                             {(() => {
                                 const pw = Math.floor(parseFloat(String(adminQuoteW).replace(/[^\d.]/g, '')) || 0);
@@ -1554,9 +1584,10 @@ const None_Custom_Detail = () => {
                                 }
                                 const area = pw * ph;
                                 const original = calculateCumulativePrice(area);
-                                const discounted = getDiscountedUnitPrice(original, partnerDiscount);
+                                const effectivePartnerDiscount = adminQuoteApplyPartnerDiscount ? partnerDiscount : 0;
+                                const discounted = getDiscountedUnitPrice(original, effectivePartnerDiscount);
                                 const sitePct = getSiteDiscountPercent();
-                                const partnerPct = Math.max(0, Number(partnerDiscount) || 0);
+                                const partnerPct = Math.max(0, Number(effectivePartnerDiscount) || 0);
                                 const hasDiscount = discounted < original;
                                 const discountLabel = (() => {
                                     if (sitePct > 0 && partnerPct > 0) {
