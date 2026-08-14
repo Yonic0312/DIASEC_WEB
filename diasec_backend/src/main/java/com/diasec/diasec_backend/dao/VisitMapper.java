@@ -21,4 +21,19 @@ public interface VisitMapper {
                                                    @Param("endDate") LocalDate endDate);
 
         LocalDate selectMinVisitDate();
+
+        int upsertPageView(@Param("viewDate") LocalDate viewDate,
+                           @Param("path") String path);
+
+        List<Map<String, Object>> selectPageViewsByDate(@Param("viewDate") LocalDate viewDate);
+
+        int selectPageViewTotalByDate(@Param("viewDate") LocalDate viewDate);
+
+        List<Map<String, Object>> selectPageViewsByDateRange(@Param("startDate") LocalDate startDate,
+                                                             @Param("endDate") LocalDate endDate);
+
+        int selectPageViewTotalByDateRange(@Param("startDate") LocalDate startDate,
+                                           @Param("endDate") LocalDate endDate);
+
+        LocalDate selectMinPageViewDate();
 }
