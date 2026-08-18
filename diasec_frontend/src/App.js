@@ -119,7 +119,7 @@ const SEO_SITE_ORIGIN = 'https://diasec.co.kr';
 const SEO_DEFAULT_OG_IMAGE = `${SEO_SITE_ORIGIN}/icon.png`;
 const getSeoPromoTitle = () => {
     const pct = getSiteWideDiscountPercent();
-    return pct > 0 ? ` | ${pct}% 오픈할인 + 무료배송` : ' + 무료배송';
+    return pct > 0 ? ` | 오픈 ${pct}% 할인 + 전 상품 무료배송` : ' + 전 상품 무료배송';
 };
 
 function getMainItemsSeoByType(type) {
@@ -264,9 +264,9 @@ function SeoMetaManager() {
 
         const promoTitle = getSeoPromoTitle();
         const seoDefaults = {
-            title: `디아섹 액자 전문 맞춤액자 디아섹코리아${promoTitle}`,
+            title: `디아섹 액자 전문 디아섹코리아${promoTitle}`,
             description:
-                '디아섹코리아에서 디아섹 액자와 맞춤 액자를 만나보세요. 작품과 사진에 맞춘 프리미엄급 액자 제작 서비스를 제공합니다.',
+                '프리미엄급 디아섹 공식 제작 쇼핑몰입니다. 사진 및 작품을 맞춤 사이즈 제작과 오픈기념 20% 할인 + 무료 배송 혜택을 확인하세요.',
             canonical: currentUrl,
         };
 

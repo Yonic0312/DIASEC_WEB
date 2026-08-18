@@ -29,11 +29,14 @@ public interface VisitMapper {
 
         int selectPageViewTotalByDate(@Param("viewDate") LocalDate viewDate);
 
-        List<Map<String, Object>> selectPageViewsByDateRange(@Param("startDate") LocalDate startDate,
-                                                             @Param("endDate") LocalDate endDate);
+        List<Map<String, Object>> selectPageViewsByDateRange(@Param("startDate") String startDate,
+                                                             @Param("endDate") String endDate);
 
-        int selectPageViewTotalByDateRange(@Param("startDate") LocalDate startDate,
-                                           @Param("endDate") LocalDate endDate);
+        int selectPageViewTotalByDateRange(@Param("startDate") String startDate,
+                                           @Param("endDate") String endDate);
+
+        List<Map<String, Object>> selectPageViewDailyByDateRange(@Param("startDate") String startDate,
+                                                                 @Param("endDate") String endDate);
 
         LocalDate selectMinPageViewDate();
 }

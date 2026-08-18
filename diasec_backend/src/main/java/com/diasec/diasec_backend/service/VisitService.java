@@ -128,35 +128,58 @@ public class VisitService {
         visitMapper.upsertPageView(LocalDate.now(KOREA), normalized);
     }
 
-    public Map<String, Object> getPageViews(int days) {
-        LocalDate end = LocalDate.now(KOREA);
-        LocalDate start;
+    public Map<String, Object> getPageViews(Integer days, String startDateStr, String endDateStr) {
+        LocalDate today = LocalDate.now(KOREA);
+        LocalDate start = parseIsoDate(startDateStr);
+        LocalDate end = parseIsoDate(endDateStr);
 
-        if (days <= 0) {
+        if (start != null && end != null) {
+            if (start.isAfter(end)) {
+                LocalDate tmp = start;
+                start = end;
+                end = tmp;
+            }
+        } else if (days != null && days > 0) {
+            int safeDays = Math.min(365, Math.max(1, days));
+            end = today;
+            start = end.minusDays(safeDays - 1L);
+        } else {
+            end = today;
             LocalDate minDate = visitMapper.selectMinPageViewDate();
             if (minDate == null) {
                 Map<String, Object> empty = new LinkedHashMap<>();
-                empty.put("startDate", end.toString());
-                empty.put("endDate", end.toString());
+                empty.put("startDate", today.toString());
+                empty.put("endDate", today.toString());
                 empty.put("total", 0);
                 empty.put("pages", List.of());
+                empty.put("daily", List.of());
                 return empty;
             }
             start = minDate;
-        } else {
-            int safeDays = Math.min(365, Math.max(1, days));
-            start = end.minusDays(safeDays - 1L);
         }
 
-        List<Map<String, Object>> rows = visitMapper.selectPageViewsByDateRange(start, end);
-        int total = visitMapper.selectPageViewTotalByDateRange(start, end);
+        String startS = start.toString();
+        String endS = end.toString();
+        List<Map<String, Object>> rows = visitMapper.selectPageViewsByDateRange(startS, endS);
+        int total = visitMapper.selectPageViewTotalByDateRange(startS, endS);
+        List<Map<String, Object>> daily = visitMapper.selectPageViewDailyByDateRange(startS, endS);
 
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("startDate", start.toString());
-        result.put("endDate", end.toString());
+        result.put("startDate", startS);
+        result.put("endDate", endS);
         result.put("total", total);
         result.put("pages", rows);
+        result.put("daily", daily);
         return result;
+    }
+
+    private static LocalDate parseIsoDate(String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return LocalDate.parse(value.trim().substring(0, Math.min(10, value.trim().length())));
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     private static String normalizePath(String path) {

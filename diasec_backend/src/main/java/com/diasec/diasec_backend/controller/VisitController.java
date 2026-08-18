@@ -68,11 +68,13 @@ public class VisitController {
     @GetMapping("/admin/visit/pages")
     public ResponseEntity<Map<String, Object>> pages(
             HttpServletRequest req,
-            @RequestParam(defaultValue = "0") int days
+            @RequestParam(required = false) Integer days,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate
     ) {
         visitService.rememberAdminIp(
                 VisitService.clientIp(req.getHeader("X-Forwarded-For"), req.getRemoteAddr())
         );
-        return ResponseEntity.ok(visitService.getPageViews(days));
+        return ResponseEntity.ok(visitService.getPageViews(days, startDate, endDate));
     }
 }

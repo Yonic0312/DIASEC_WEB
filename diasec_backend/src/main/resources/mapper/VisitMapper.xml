@@ -53,15 +53,28 @@
     <select id="selectPageViewsByDateRange" resultType="map">
         SELECT path, SUM(view_count) AS viewCount
         FROM page_view_daily
-        WHERE view_date BETWEEN #{startDate} AND #{endDate}
+        WHERE view_date &gt;= #{startDate, jdbcType=DATE}
+          AND view_date &lt;= #{endDate, jdbcType=DATE}
         GROUP BY path
-        ORDER BY viewCount DESC, path ASC
+        ORDER BY SUM(view_count) DESC, path ASC
     </select>
 
     <select id="selectPageViewTotalByDateRange" resultType="int">
         SELECT COALESCE(SUM(view_count), 0)
         FROM page_view_daily
-        WHERE view_date BETWEEN #{startDate} AND #{endDate}
+        WHERE view_date &gt;= #{startDate, jdbcType=DATE}
+          AND view_date &lt;= #{endDate, jdbcType=DATE}
+    </select>
+
+    <select id="selectPageViewDailyByDateRange" resultType="map">
+        SELECT
+            DATE_FORMAT(view_date, '%Y-%m-%d') AS viewDate,
+            SUM(view_count) AS viewCount
+        FROM page_view_daily
+        WHERE view_date &gt;= #{startDate, jdbcType=DATE}
+          AND view_date &lt;= #{endDate, jdbcType=DATE}
+        GROUP BY view_date
+        ORDER BY view_date ASC
     </select>
 
     <select id="selectMinPageViewDate" resultType="java.time.LocalDate">
