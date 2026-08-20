@@ -59,8 +59,6 @@ import NoticeList from './components/Support/NoticeList'
 import ReviewBoard from './components/Support/ReviewBoard'
 import BulkOrderDiscount from './components/Support/BulkOrderDiscount'
 import CustomFrames from './components/Main/Main_CustomFrames'
-import BizOrderBoard from './components/Biz/BizOrderBoard'
-import Biz_OrderWrite from './components/Biz/Biz_OrderWrite'
 import Main_CompanyProfile from './components/Main/Main_CompanyProfile'
 import MyRetouchList from './components/Member/Order/MyRetouchList'
 import MemberHome from './components/Member/MemberHome'
@@ -93,10 +91,8 @@ import Admin_CollectionManager from './components/Admin/Admin_CollectionManager'
 import Admin_Order_Detail from './components/Admin/Order_Detail'
 import Admin_EventManager from './components/Admin/Admin_EventManager'
 import Admin_SiteDiscount from './components/Admin/Admin_SiteDiscount'
-import Admin_BizList from './components/Admin/Admin_BizList'
 import Admin_BizConsultList from './components/Admin/Admin_BizConsultList'
 import Admin_BizConsultView from './components/Admin/Admin_BizConsultView'
-import Admin_BizView from './components/Admin/Admin_BizView'
 // import Admin_Lease_Status from './components/Admin/Lease_Status'
 import Admin_AuthorManager from './components/Admin/AuthorManager'
 import Admin_RetouchList from './components/Admin/AdminRetouchList'
@@ -265,7 +261,7 @@ function SeoMetaManager() {
 
         const promoTitle = getSeoPromoTitle();
         const seoDefaults = {
-            title: `디아섹 액자 전문 디아섹코리아${promoTitle}`,
+            title: `디아섹 액자 전문 • 맞춤액자 디아섹코리아${promoTitle}`,
             description:
                 '프리미엄급 디아섹 공식 제작 쇼핑몰입니다. 사진 및 작품을 맞춤 사이즈 제작과 오픈기념 20% 할인 + 무료 배송 혜택을 확인하세요.',
             canonical: currentUrl,
@@ -565,8 +561,6 @@ function App() {
                         <Route path="/reviewBoard" element={<ReviewBoard />} />
                         <Route path="/bulkOrderDiscount" element={<BulkOrderDiscount />} />
                         <Route path="/customFrames" element={<CustomFrames />} />
-                        <Route path="/bizOrderBoard" element={<BizOrderBoard />} />
-                        <Route path="/biz_OrderWrite" element={<Biz_OrderWrite />} />
                         <Route path="/main_CompanyProfile" element={<Main_CompanyProfile />} />
                         <Route path="/mypage/retouch" element={<MyRetouchList />} />
                         <Route path="/mypage" element={<MemberHome />} />
@@ -591,8 +585,6 @@ function App() {
                         <Route path="/admin/insert_Product" element={<AdminRoute><Insert_Product/></AdminRoute>} />
                         <Route path="/admin/order_Status" element={<AdminRoute><Order_Status/></AdminRoute>} />   
                         <Route path="/admin/order_Detail/:itemId" element={<AdminRoute><Admin_Order_Detail/></AdminRoute>} />
-                        <Route path="/admin_BizList" element={<AdminRoute><Admin_BizList /></AdminRoute>} />
-                        <Route path="/admin/biz/view/:id" element={<AdminRoute><Admin_BizView /></AdminRoute>} />
                         <Route path="/admin_BizConsultList" element={<AdminRoute><Admin_BizConsultList /></AdminRoute>} />
                         <Route path="/admin_biz-consult/view/:id" element={<AdminRoute><Admin_BizConsultView /></AdminRoute>} />
                         <Route path="/admin_AuthorManager" element={<AdminRoute><Admin_AuthorManager /></AdminRoute>} />

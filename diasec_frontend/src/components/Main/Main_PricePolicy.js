@@ -30,34 +30,29 @@ const Main_PricePolicy = () => {
                     </div>
                 </div>
 
-                <div className="px-4">
+                <div className="flex flex-col items-center px-4">
                     <section className="flex flex-col lg:flex-row items-start gap-4 md:gap-10 mb-10">
-                        <div className="lg:w-1/2 w-full shrink-0">
-                            <img
-                                src={P1}
-                                alt="디아섹 작품 보존"
-                                className="w-full object-cover rounded-3xl"
-                            />
-                        </div>
-
-                        <div className="lg:w-1/2 w-full flex-1 text-black flex flex-col">
-                            <h2 className="
-                                text-[clamp(17px,4.381vw,28px)] md:text-[28px]
-                                font-medium text-gray-900 mb-[6px] border-b border-gray-300"
-                            >
-                                디아섹코리아의 제품가격은 결코 저렴하지 않습니다
-                            </h2>
-                            <div className="
-                                text-[clamp(13px,2.085vw,16px)] md:text-[18px]
-                                leading-7 space-y-2"
-                            >
-                                <p className="leading-relaxed">
-                                    그 이유는 디아섹코리아가 디아섹 최초 개발자인
+                        <div className="w-full max-w-[850px] flex flex-col justify-center md:flex-row md:items-stretch px-4 gap-8 md:gap-10">
+                            <div className="w-full md:w-[30%] shrink-0 overflow-hidden rounded-xl bg-gray-100 shadow-sm ring-1 ring-black/5">
+                                <img 
+                                    className="w-full h-auto object-cover" 
+                                    src={P1} 
+                                    alt="디아섹 작품 보존"
+                                />
+                            </div>
+                            <div className="flex min-w-0 flex-1 flex-col justify-center gap-2 text-left">
+                                <h3 className="
+                                    text-[15px] md:text-[24px]
+                                    font-bold text-gray-900">
+                                    디아섹코리아의 제품가격은 결코 저렴하지 않습니다
+                                </h3>
+                                <span className=" text-[13px] md:text-[19px] leading-relaxed text-gray-600">
+                                그 이유는 디아섹코리아가 디아섹 최초 개발자인
                                     스위스 Heinz Sovilla 부부의{' '}
                                     작품 보존 정신을 존중하고,{' '}
                                     독일식 정통 제작 공법을 기준으로 제작하기 때문입니다.
                                     오랜 시간이 지나도 작품 본연의 색감과 형태를 그대로 유지하는 기술력,
-                                </p>
+                                </span>
                             </div>
                         </div>
                     </section>

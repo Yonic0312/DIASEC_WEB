@@ -138,7 +138,6 @@ public class SecurityConfig {
                 .requestMatchers("/api/faq/**").authenticated()
                 .requestMatchers("/api/notice/**").authenticated()
                 .requestMatchers("/api/event/**").authenticated()
-                .requestMatchers("/api/biz/**").authenticated()
 
                 // 4. 나머지
                 .anyRequest().authenticated()
