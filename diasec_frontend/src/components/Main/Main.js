@@ -355,6 +355,7 @@ const Main = () => {
 
     // 리뷰 상세 페이지 이미지 슬라이드
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+    const [imageZoomOpen, setImageZoomOpen] = useState(false);
 
     useEffect(() => {
         if (!selectedReview) return;
@@ -371,6 +372,7 @@ const Main = () => {
 
         const onKey = (e) => {
             if (e.key === 'Escape') {
+                setImageZoomOpen(false);
                 setSelectedReview(null);
                 setSelectedImageIndex(0);
             }
@@ -920,6 +922,7 @@ const Main = () => {
                                 onClick={() => {
                                     setSelectedReview(null);
                                     setSelectedImageIndex(0);
+                                    setImageZoomOpen(false);
                                 }}
                             >
                                 ✕
@@ -928,12 +931,24 @@ const Main = () => {
 
                         <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3 md:px-5 md:pb-5">
                             {/* 메인 이미지 */}
-                            <div className="w-full aspect-[4/3] rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden">
+                            <div
+                                className="relative w-full aspect-[4/3] rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden cursor-zoom-in"
+                                onClick={() => {
+                                    if (selectedReview.images?.[selectedImageIndex]) {
+                                        setImageZoomOpen(true);
+                                    }
+                                }}
+                            >
                                 <img
                                     src={selectedReview.images?.[selectedImageIndex]}
                                     alt={`상세 이미지 ${selectedImageIndex + 1}`}
                                     className="max-w-full max-h-full object-contain"
                                 />
+                                {selectedReview.images?.[selectedImageIndex] && (
+                                    <span className="absolute bottom-2 right-2 rounded-full bg-black/55 px-2 py-0.5 text-[11px] text-white">
+                                        클릭하여 확대
+                                    </span>
+                                )}
                             </div>
 
                             {/* 썸네일 */}
@@ -990,6 +1005,58 @@ const Main = () => {
                 </div>
             )}
             {/* /🔶 리뷰 썸네일 슬라이더 영역 */}
+
+            {imageZoomOpen && selectedReview?.images?.[selectedImageIndex] && (
+                <div
+                    className="fixed inset-0 z-[10001] bg-black/85 flex items-center justify-center px-3 py-10"
+                    onClick={() => setImageZoomOpen(false)}
+                >
+                    <button
+                        type="button"
+                        aria-label="확대 닫기"
+                        className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/15 text-white text-xl hover:bg-white/30"
+                        onClick={() => setImageZoomOpen(false)}
+                    >
+                        ✕
+                    </button>
+
+                    {selectedReview.images.length > 1 && (
+                        <>
+                            <button
+                                type="button"
+                                className="absolute left-3 md:left-6 w-10 h-10 rounded-full bg-white/15 text-white text-2xl hover:bg-white/30"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedImageIndex((prev) =>
+                                        prev === 0 ? selectedReview.images.length - 1 : prev - 1
+                                    );
+                                }}
+                            >
+                                ‹
+                            </button>
+                            <button
+                                type="button"
+                                className="absolute right-3 md:right-6 w-10 h-10 rounded-full bg-white/15 text-white text-2xl hover:bg-white/30"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedImageIndex((prev) =>
+                                        prev === selectedReview.images.length - 1 ? 0 : prev + 1
+                                    );
+                                }}
+                            >
+                                ›
+                            </button>
+                        </>
+                    )}
+
+                    <img
+                        src={selectedReview.images[selectedImageIndex]}
+                        alt={`확대 이미지 ${selectedImageIndex + 1}`}
+                        className="max-w-[95vw] max-h-[90vh] object-contain"
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                </div>
+            )}
 
 
             {/* 회사 소개 및 디아섹이란 배너 (사진 배경형) */}

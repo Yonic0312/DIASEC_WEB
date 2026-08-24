@@ -11,6 +11,13 @@ const ReviewList = ({ pid }) => {
     const [reviews, setReviews] = useState([]);
     const [selectedReview, setSelectedReview] = useState(null);
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+    const [imageZoomOpen, setImageZoomOpen] = useState(false);
+
+    const closeReviewModal = () => {
+        setSelectedReview(null);
+        setSelectedImageIndex(0);
+        setImageZoomOpen(false);
+    };
 
     useEffect(() => {
         // fetch(`${API}/review/list?pid=${pid}`) 상품([pid]별 리뷰 * 추후 사용)
@@ -183,8 +190,7 @@ const ReviewList = ({ pid }) => {
                     <div
                         className="fixed inset-0 bg-black/55 backdrop-blur-[2px] flex items-center justify-center px-4 py-6 z-[10000]"
                         onClick={() => {
-                            setSelectedReview(null);
-                            setSelectedImageIndex(0);
+                            closeReviewModal();
                         }}
                     >
                         <div
@@ -206,10 +212,7 @@ const ReviewList = ({ pid }) => {
                                 <button
                                     aria-label="모달 닫기"
                                     className="w-8 h-8 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition"
-                                    onClick={() => {
-                                        setSelectedReview(null);
-                                        setSelectedImageIndex(0);
-                                    }}
+                                    onClick={closeReviewModal}
                                 >
                                     ✕
                                 </button>
@@ -217,12 +220,24 @@ const ReviewList = ({ pid }) => {
 
                             <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3 md:px-5 md:pb-5">
                                 {/* 메인 이미지 */}
-                                <div className="w-full aspect-[4/3] rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden">
+                                <div
+                                    className="relative w-full aspect-[4/3] rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden cursor-zoom-in"
+                                    onClick={() => {
+                                        if (selectedReview.images?.[selectedImageIndex]) {
+                                            setImageZoomOpen(true);
+                                        }
+                                    }}
+                                >
                                     <img
                                         src={selectedReview.images?.[selectedImageIndex]}
                                         alt={`상세 이미지 ${selectedImageIndex + 1}`}
                                         className="max-w-full max-h-full object-contain"
                                     />
+                                    {selectedReview.images?.[selectedImageIndex] && (
+                                        <span className="absolute bottom-2 right-2 rounded-full bg-black/55 px-2 py-0.5 text-[11px] text-white">
+                                            클릭하여 확대
+                                        </span>
+                                    )}
                                 </div>
 
                                 {/* 썸네일 */}
@@ -279,6 +294,58 @@ const ReviewList = ({ pid }) => {
                     </div>
                 )}
                 {/* 리뷰 선택 모달창 */}
+
+                {imageZoomOpen && selectedReview?.images?.[selectedImageIndex] && (
+                    <div
+                        className="fixed inset-0 z-[10001] bg-black/85 flex items-center justify-center px-3 py-10"
+                        onClick={() => setImageZoomOpen(false)}
+                    >
+                        <button
+                            type="button"
+                            aria-label="확대 닫기"
+                            className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/15 text-white text-xl hover:bg-white/30"
+                            onClick={() => setImageZoomOpen(false)}
+                        >
+                            ✕
+                        </button>
+
+                        {selectedReview.images.length > 1 && (
+                            <>
+                                <button
+                                    type="button"
+                                    className="absolute left-3 md:left-6 w-10 h-10 rounded-full bg-white/15 text-white text-2xl hover:bg-white/30"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedImageIndex((prev) =>
+                                            prev === 0 ? selectedReview.images.length - 1 : prev - 1
+                                        );
+                                    }}
+                                >
+                                    ‹
+                                </button>
+                                <button
+                                    type="button"
+                                    className="absolute right-3 md:right-6 w-10 h-10 rounded-full bg-white/15 text-white text-2xl hover:bg-white/30"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedImageIndex((prev) =>
+                                            prev === selectedReview.images.length - 1 ? 0 : prev + 1
+                                        );
+                                    }}
+                                >
+                                    ›
+                                </button>
+                            </>
+                        )}
+
+                        <img
+                            src={selectedReview.images[selectedImageIndex]}
+                            alt={`확대 이미지 ${selectedImageIndex + 1}`}
+                            className="max-w-[95vw] max-h-[90vh] object-contain"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    </div>
+                )}
 
                 {/* 페이징 버튼 */}
                 <div className="flex justify-center gap-2 mt-4 md:mt-8 text-sm">

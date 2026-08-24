@@ -277,6 +277,32 @@ const Main_CustomFrames = () => {
     const PREVIEW_MAX_SIDE_PX = 800;
     const ORDER_THUMB_MAX_SIDE_PX = 150;
 
+    const isHeifLike = (file) => {
+        const type = (file.type || '').toLowerCase();
+        const name = (file.name || '').toLowerCase();
+        return (
+            type === 'image/heic' ||
+            type === 'image/heif' ||
+            name.endsWith('.heic') ||
+            name.endsWith('.heif')
+        );
+    };
+
+    // HEIF/HEIC → JPG (최고 품질). 브라우저에서 디코딩 가능하도록 변환
+    const ensureDecodableImageFile = async (file) => {
+        if (!isHeifLike(file)) return file;
+
+        const heic2any = (await import('heic2any')).default;
+        const converted = await heic2any({
+            blob: file,
+            toType: 'image/jpeg',
+            quality: 1,
+        });
+        const blob = Array.isArray(converted) ? converted[0] : converted;
+        const baseName = file.name.replace(/\.(heic|heif)$/i, '') || 'photo';
+        return new File([blob], `${baseName}.jpg`, { type: 'image/jpeg' });
+    };
+
     const makePreviewDataUrl = (img, maxSidePx, quality) => {
         const srcW = img.width;
         const srcH = img.height;
@@ -335,7 +361,7 @@ const Main_CustomFrames = () => {
             )
         }
 
-        filesToProcess.forEach(file => {
+        filesToProcess.forEach(rawFile => {
             const tempId = uuidv4();
             setCustomItems(prev => [
                 ...prev,
@@ -366,82 +392,92 @@ const Main_CustomFrames = () => {
 
             setSelectedItemId(tempId);
 
-            const objectUrl = URL.createObjectURL(file);
-            const img = new Image();
-
-            // 업로드 시점에는 서버 저장하지 않고 메모리에서만 보관
-            img.onload = async () => {
+            (async () => {
+                let objectUrl = null;
                 try {
-                    const preview800 = makePreviewDataUrl(img, PREVIEW_MAX_SIDE_PX, 1);
-                    const preview150 = makePreviewDataUrl(img, ORDER_THUMB_MAX_SIDE_PX, 1);
-                    const preview150File = dataUrlToFile(preview150, `${uuidv4()}_150.jpg`);
+                    const file = await ensureDecodableImageFile(rawFile);
+                    objectUrl = URL.createObjectURL(file);
+                    const img = new Image();
 
-                    setImageSrc(preview800);
+                    // 업로드 시점에는 서버 저장하지 않고 메모리에서만 보관
+                    img.onload = async () => {
+                        try {
+                            const preview800 = makePreviewDataUrl(img, PREVIEW_MAX_SIDE_PX, 1);
+                            const preview150 = makePreviewDataUrl(img, ORDER_THUMB_MAX_SIDE_PX, 1);
+                            const preview150File = dataUrlToFile(preview150, `${uuidv4()}_150.jpg`);
 
-                    // 사이즈 계산
-                    const ratio = img.width / img.height;
-                    const maxWidth = ratio >= 1 ? 200.7 : 101.6;
-                    const maxHeight = ratio >= 1 ? 101.6 : 200.7;
+                            setImageSrc(preview800);
 
-                    const effectiveMinWidth = Math.max(MIN_WIDTH, MIN_HEIGHT * ratio);
-                    let width = getMidWidth(effectiveMinWidth, maxWidth, maxHeight, ratio);
-                    let height = parseFloat((width / ratio).toFixed(1));
+                            // 사이즈 계산
+                            const ratio = img.width / img.height;
+                            const maxWidth = ratio >= 1 ? 200.7 : 101.6;
+                            const maxHeight = ratio >= 1 ? 101.6 : 200.7;
 
-                    if (height < MIN_HEIGHT) {
-                        height = MIN_HEIGHT;
-                        width = parseFloat((height * ratio).toFixed(1));
-                    }
-                    if (height > maxHeight) {
-                        height = maxHeight;
-                        width = parseFloat((height * ratio).toFixed(1));
-                    }
+                            const effectiveMinWidth = Math.max(MIN_WIDTH, MIN_HEIGHT * ratio);
+                            let width = getMidWidth(effectiveMinWidth, maxWidth, maxHeight, ratio);
+                            let height = parseFloat((width / ratio).toFixed(1));
 
-                    const area = getPriceAreaCm(width, height);
-                    const price = calculateCumulativePrice(area);
+                            if (height < MIN_HEIGHT) {
+                                height = MIN_HEIGHT;
+                                width = parseFloat((height * ratio).toFixed(1));
+                            }
+                            if (height > maxHeight) {
+                                height = maxHeight;
+                                width = parseFloat((height * ratio).toFixed(1));
+                            }
 
-                    const newItem = {
-                        id: tempId,
-                        imageSrc: preview800,
-                        thumbnailPreview: preview150,
-                        thumbnailFile: file, // 주문 확정 시 서버로 보낼 원본 파일
-                        thumbnailPreviewFile: preview150File, // 주문 확정 시 서버로 보낼 미니 썸네일 파일
-                        file,
-                        aspectRatio: ratio,
-                        width: Math.round(width),
-                        height: Math.round(height),
-                        maxWidth,
-                        maxHeight,
-                        price,
-                        finishType: 'glossy',
-                        retouch: { enabled: false, types: [], note: '' },
-                        quantity: 1,
-                        isUploading: false,
+                            const area = getPriceAreaCm(width, height);
+                            const price = calculateCumulativePrice(area);
+
+                            const newItem = {
+                                id: tempId,
+                                imageSrc: preview800,
+                                thumbnailPreview: preview150,
+                                thumbnailFile: file, // 주문 확정 시 서버로 보낼 원본(또는 HEIF 변환 JPG) 파일
+                                thumbnailPreviewFile: preview150File, // 주문 확정 시 서버로 보낼 미니 썸네일 파일
+                                file,
+                                aspectRatio: ratio,
+                                width: Math.round(width),
+                                height: Math.round(height),
+                                maxWidth,
+                                maxHeight,
+                                price,
+                                finishType: 'glossy',
+                                retouch: { enabled: false, types: [], note: '' },
+                                quantity: 1,
+                                isUploading: false,
+                            };
+                            setCustomItems(prev => prev.map(it => (it.id === tempId ? newItem : it)));
+                            setSelectedItemId(tempId);
+                            activateSizeAdjustHint();
+                            toast.success(
+                                <>
+                                    이미지가 등록되었습니다.
+                                    <br />
+                                    원하는 크기로 조정해 보세요.
+                                    <br />
+                                    사이즈에 따라 작품 가격이 자동으로 계산됩니다.
+                                </>,
+                                { autoClose: 9000 }
+                            );
+                        } finally {
+                            if (objectUrl) URL.revokeObjectURL(objectUrl);
+                        }
                     };
-                    setCustomItems(prev => prev.map(it => (it.id === tempId ? newItem : it)));
-                    setSelectedItemId(tempId);
-                    activateSizeAdjustHint();
-                    toast.success(
-                        <>
-                            이미지가 등록되었습니다.
-                            <br />
-                            원하는 크기로 조정해 보세요.
-                            <br />
-                            사이즈에 따라 작품 가격이 자동으로 계산됩니다.
-                        </>,
-                        { autoClose: 9000 }
-                    );
-                } finally {
-                    URL.revokeObjectURL(objectUrl);
+
+                    img.onerror = () => {
+                        if (objectUrl) URL.revokeObjectURL(objectUrl);
+                        setCustomItems(prev => prev.filter(it => it.id !== tempId));
+                        toast.error('이미지를 불러오지 못했습니다.');
+                    };
+
+                    img.src = objectUrl;
+                } catch (err) {
+                    if (objectUrl) URL.revokeObjectURL(objectUrl);
+                    setCustomItems(prev => prev.filter(it => it.id !== tempId));
+                    toast.error('HEIF/HEIC 이미지를 변환하지 못했습니다. JPG로 저장 후 다시 시도해 주세요.');
                 }
-            };
-
-            img.onerror = () => {
-                URL.revokeObjectURL(objectUrl);
-                setCustomItems(prev => prev.filter(it => it.id !== tempId));
-                toast.error('이미지를 불러오지 못했습니다.');
-            };
-
-            img.src = objectUrl;
+            })();
         })
     }
 
@@ -1215,7 +1251,7 @@ const Main_CustomFrames = () => {
                             {/* 숨겨진 파일 업로드 input */}
                             <input 
                                 type="file"
-                                accept="image/jpeg, image/png"
+                                accept="image/jpeg, image/png, image/heic, image/heif, .heic, .heif"
                                 id="fileInput"
                                 onChange={handleImageUpload}
                                 className="hidden"
@@ -1303,7 +1339,7 @@ const Main_CustomFrames = () => {
                                     </svg>
                                     <span className="text-sm text-center">
                                             여기를 클릭하거나 <br /> 이미지를 드래그해서 올려주세요 <br />
-                                        <span className="text-xs text-gray-500">(JPG, PNG 파일만 가능, 파일당 최대 50MB)</span>
+                                        <span className="text-xs text-gray-500">(JPG, PNG, HEIC 가능, 파일당 최대 50MB)</span>
                                         <br />
                                         {/* <span className="text-xs text-[a67a3e] font-medium mt-1 inline-block">
                                             {isCustomOrderFull
