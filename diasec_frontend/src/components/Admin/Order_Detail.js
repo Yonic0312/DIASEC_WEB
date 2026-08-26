@@ -23,7 +23,7 @@ const PRINT_ORDER_STYLES = `
     }
     .print-wrap .print-section {
         margin-top: 14px;
-        border: 1px solid #d9d9d9;
+        border: 1px solid #5D5D5D;
         padding: 12px;
         border-radius: 8px;
         page-break-inside: avoid;
@@ -111,6 +111,13 @@ const PRINT_ORDER_STYLES = `
     .print-wrap .print-size-line .print-size-b {
         color: #16a34a;
     }
+    .print-wrap .print-note-label {
+        color: #2563eb;
+        font-weight: 700;
+        font-size: 14px;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
     @media print {
         @page {
             size: A4;
@@ -157,6 +164,12 @@ const PRINT_ORDER_STYLES = `
         }
         .print-wrap .print-size-line .print-size-b {
             color: #16a34a !important;
+        }
+        .print-wrap .print-note-label {
+            color: #2563eb !important;
+            font-weight: 400;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
     }
 `;
@@ -1177,6 +1190,17 @@ const Order_Detail = () => {
                     </div>
                 );
             })()}
+
+            <div className="print-section">
+                {/* <h3 className="print-section-title font-semibold text-lg">배송지 정보</h3> */}
+                <div>
+                    <span className="print-note-label">구매자 요청:</span> {order.buyerRequest}
+                </div>
+
+                <div>
+                    <span className="print-note-label">배송 메시지:</span> {order.deliveryMessage}
+                </div>
+            </div>
                     
             {/* 반품 입력창 */}
             {showReturnForm && order.items[0].orderStatus !== '반품신청' && (
@@ -1466,16 +1490,6 @@ const Order_Detail = () => {
                                 {order.detailAddress}
                             </>
                     </div>
-
-                    <div>
-                        <span className="font-bold">구매자 요청:</span> {order.buyerRequest}
-                    </div>
-
-                    <div>
-                        <span className="font-bold">배송 메시지:</span> {order.deliveryMessage}
-                    </div>
-
-                    
                 </div>
 
                 <div className="no-print mt-4 border border-dashed border-gray-300 rounded-lg p-4 bg-gray-50">

@@ -11,7 +11,7 @@ import { usePartner } from '../../context/PartnerContext';
 import RetouchModal, {
     CUSTOM_FRAME_RETOUCH_OPTION_LABELS,
 } from '../Modal/RetouchModal.js';
-import { getDiscountedUnitPrice } from '../../utils/siteDiscount';
+import { getDiscountedUnitPrice, getEffectiveExtraPercent } from '../../utils/siteDiscount';
 import {
     SitePriceRow,
     SitePriceTotal,
@@ -195,9 +195,10 @@ const OrderForm = () => {
         (sum, item) => sum + Number(item.price) * Number(item.quantity),
         0
     );
+    const extraDiscountPercent = getEffectiveExtraPercent(partnerDiscount, originalSubtotal);
     const totalPrice = items.reduce(
         (sum, item) =>
-            sum + getDiscountedUnitPrice(item.price, partnerDiscount) * Number(item.quantity),
+            sum + getDiscountedUnitPrice(item.price, extraDiscountPercent) * Number(item.quantity),
         0
     );
     const deliveryFee = 0; // 배송비
@@ -383,7 +384,7 @@ const OrderForm = () => {
                 title: item.title,
                 author: item.author,
                 quantity: item.quantity,
-                price: getDiscountedUnitPrice(item.price, partnerDiscount),
+                price: getDiscountedUnitPrice(item.price, extraDiscountPercent),
                 period: item.period,
                 size: item.size,
                 // 맞춤액자는 주문 확정 시 multipart 파일로 업로드 후 서버에서 URL 세팅
@@ -703,6 +704,7 @@ const OrderForm = () => {
                                 <SitePriceRow
                                     unitPrice={item.price}
                                     quantity={Number(item.quantity)}
+                                    originalOrderTotal={originalSubtotal}
                                     neutralClassName={`${SITE_PRICE_TEXT} font-bold`}
                                 />
                             </div>
@@ -1082,7 +1084,7 @@ const OrderForm = () => {
                         className="w-full border-[1px] h-8 px-2" 
                         value={buyerRequest}
                         onChange={(e) => setBuyerRequest(e.target.value)}
-                        placeholder="(뒷면 와이어 설치, 뒷면 프레임 없이 제작, 대량주문 등)"
+                        // placeholder="(뒷면 와이어 설치, 뒷면 프레임 없이 제작, 대량주문 등)"
                     />
                 </div>
                 <hr/>
@@ -1212,6 +1214,7 @@ const OrderForm = () => {
                         <SitePriceTotal
                             original={originalSubtotal}
                             discounted={totalPrice}
+                            originalOrderTotal={originalSubtotal}
                             className={SITE_PRICE_TEXT}
                         />
                         {' '}

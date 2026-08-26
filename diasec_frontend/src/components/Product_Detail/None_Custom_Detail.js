@@ -5,7 +5,7 @@ import { MemberContext } from '../../context/MemberContext';
 import ProductDetailTabs from '../ProductDetailTabs/ProductDetailTabs';
 import { toast } from 'react-toastify';
 import { usePartner } from '../../context/PartnerContext';
-import { getDiscountedUnitPrice, getSiteDiscountPercent } from '../../utils/siteDiscount';
+import { getDiscountedUnitPrice, getSiteDiscountPercent, getEffectiveExtraPercent, getBulkDiscountPercent } from '../../utils/siteDiscount';
 import {
     SitePriceRow,
     SitePriceTotal,
@@ -13,6 +13,7 @@ import {
 } from '../common/SitePriceDisplay';
 import bg from '../../assets/CustomFrames/p.png';
 import bg2 from '../../assets/CustomFrames/p2.png'; // 현재 배경
+
 const None_Custom_Detail = () => {
     const API = process.env.REACT_APP_API_BASE;
     const navigate = useNavigate();
@@ -31,13 +32,14 @@ const None_Custom_Detail = () => {
     const buyButtonSectionRef = useRef(null);
     const [showBottomBuy, setShowBottomBuy] = useState(false);
 
+    
     /** cm만 넣어 견적 확인(주문·이미지에 반영 안 함) */
     const [adminQuoteModalOpen, setAdminQuoteModalOpen] = useState(false);
     const [adminQuoteW, setAdminQuoteW] = useState('');
     const [adminQuoteH, setAdminQuoteH] = useState('');
 
     // 관리자만 볼 수 있는 버튼 (파트너 할인 적용/미적용)
-    const [adminQuoteApplyPartnerDiscount, setAdminQuoteApplyPartnerDiscount] = useState(false); // 기본: 파트너 할인 미적용
+    const [adminQuoteApplyPartnerDiscount, setAdminQuoteApplyPartnerDiscount] = useState(false);
 
     const openAdminQuoteModal = () => {
         setAdminQuoteW(String(Math.floor(width)));
@@ -110,7 +112,8 @@ const None_Custom_Detail = () => {
     const [maxWidth, setMaxWidth] = useState(200.7); // 초기값: 가로 최대
     const [maxHeight, setMaxHeight] = useState(101.6); // 초기값: 세로 최대
 
-    const MAX_CUSTOM_ORDER_ITEMS = 30;
+    // const disableDelete = customItems.length <= 1;
+    const MAX_CUSTOM_ORDER_ITEMS = 100;
     const canDeleteItem = customItems.length > 1;
     const isCustomOrderFull = customItems.length >= MAX_CUSTOM_ORDER_ITEMS;
 
@@ -164,7 +167,7 @@ const None_Custom_Detail = () => {
         // 현재 입력값 기준으로 새 옵션 생성
         const nextW = Math.floor(width);
         const nextH = Math.floor(height);
-        const newArea = getPriceAreaCm(nextW, nextH);
+        const newArea = getPriceAreaCm(width, height);
         const newPrice = calculateCumulativePrice(newArea);
 
         const newId = `opt-${nextIdRef.current++}`;
@@ -179,6 +182,7 @@ const None_Custom_Detail = () => {
             maxHeight,
             price: newPrice,
             finishType: (findSelected()?.finishType) ?? 'glossy',
+            quantity: 1,
         };
 
         setCustomItems(prev => [...prev, newItem]);
@@ -216,14 +220,14 @@ const None_Custom_Detail = () => {
     const dismissSizeAdjustHint = () => {
         setShowSizeAdjustHint(false);
     };
-    
+
     useEffect(() => {
         setWidthInput(String(Math.floor(width)));
     }, [width]);
 
     useEffect(() => {
         setHeightInput(String(Math.floor(height)));
-    }, [height]);
+    }, [width]);
 
     const handleWidthChange = (e) => {
         let value = parseFloat(e.target.value);
@@ -402,7 +406,7 @@ const None_Custom_Detail = () => {
     const paperHeightPct = (paperHpx / BASE_BG_H) * 100;
     // A3 ~ A0 오버레이 //
 
-    // 화면에 보이는 cm(내림) 기준으로 면적·가격 통일
+    //화면에 보이는 cm(내림) 기준으로 면적, 가격 통일
     const getPriceAreaCm = (w, h) => Math.floor(Number(w) || 0) * Math.floor(Number(h) || 0);
 
     // 계산
@@ -421,7 +425,7 @@ const None_Custom_Detail = () => {
             remainingArea -= tierArea;
             lastMax = tier.maxArea;
         }
-        return Math.floor(Math.round(totalPrice) / 1000) * 1000;
+        return Math.max(20000, Math.floor(Math.round(totalPrice) / 1000) * 1000);
     }
 
     // 사이즈 조정바 최대 width 계산
@@ -543,16 +547,19 @@ const None_Custom_Detail = () => {
         dismissSizeAdjustHint();
     };
 
-    // 최종 비용 계산 (배송비 없음 — 전 구간 무료배송)
+    // 최종 비용 계산(배송비 없음 - 전 구간 무료배송)
     const totalPriceWithoutShipping = customItems.reduce((acc, item) => {
-        const area = getPriceAreaCm(item.width, item.height);
-        return acc + calculateCumulativePrice(area);
+        const qty = item.quantity ?? 1;
+        return acc + (Number(item.price) || 0) * qty;
     }, 0);
 
-    const totalPriceWithoutShippingDiscounted = customItems.reduce(
-        (acc, item) => acc + getDiscountedUnitPrice(item.price, partnerDiscount),
-        0
-    );
+    const extraDiscountPercent = getEffectiveExtraPercent(partnerDiscount, totalPriceWithoutShipping);
+    const bulkDiscountPercent = getBulkDiscountPercent(totalPriceWithoutShipping);
+
+    const totalPriceWithoutShippingDiscounted = customItems.reduce((acc, item) => {
+        const qty = item.quantity ?? 1;
+        return acc + getDiscountedUnitPrice(item.price, extraDiscountPercent) * qty;
+    }, 0);
 
     useEffect(() => {
         if (pid) {
@@ -590,6 +597,7 @@ const None_Custom_Detail = () => {
                                 startH = MIN_HEIGHT;
                                 startW = parseFloat((startH * ratio).toFixed(1));
                             }
+
                             if (startH > maxH) {
                                 startH = maxH;
                                 startW = parseFloat((startH * ratio).toFixed(1));
@@ -609,12 +617,13 @@ const None_Custom_Detail = () => {
                             id: "main-painting",
                             imageSrc: url,
                             aspectRatio: ratio,
-                            width: storedW,
-                            height: storedH,
+                            width: startW,
+                            height: startH,
                             maxWidth: maxW,
                             maxHeight: maxH,
                             price,
-                            finishType: 'glossy'
+                            finishType: 'glossy',
+                            quantity: 1,
                         }]);
 
                         setSelectedItemId("main-painting");
@@ -625,8 +634,8 @@ const None_Custom_Detail = () => {
                             id: "main-painting",
                             imageSrc: url,
                             aspectRatio: ratio,
-                            width: storedW,
-                            height: storedH,
+                            width: startW,
+                            height: startH,
                             maxWidth: maxW,
                             maxHeight: maxH,
                             price
@@ -795,7 +804,7 @@ const None_Custom_Detail = () => {
             thumbnail: item.imageSrc,
             size: toInchSize(item.width, item.height),
             finishType: item.finishType ?? 'glossy',
-            quantity: 1,
+            quantity: item.quantity ?? 1,
         }));
 
         try {
@@ -826,7 +835,7 @@ const None_Custom_Detail = () => {
             size: toInchSize(item.width, item.height),
             category: `${category}`,
             finishType: item.finishType ?? 'glossy',
-            quantity: 1
+            quantity: item.quantity ?? 1,
         }));
         navigate('/orderForm', { state: { orderItems: orderData } });
     }
@@ -1002,7 +1011,7 @@ const None_Custom_Detail = () => {
 
                     {/* 사이즈 입력 */}
                     <div className="flex flex-col">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2 md:mt-2">
                             <label className="text-base font-semibold">사이즈 조정</label>
                             <button
                                 type="button"
@@ -1141,6 +1150,8 @@ const None_Custom_Detail = () => {
                         
                         {/* 결제 목록 */}
                         {customItems.length > 0 && (
+                            // <div className='max-h-[300px] overflow-y-scroll mt-3 space-y-2'>
+                            //     {customItems.map((item, idx) => (
                             <>
                                 <div className="mt-2 ml-1 flex items-center justify-between">
                                     <span
@@ -1170,134 +1181,136 @@ const None_Custom_Detail = () => {
                                 </div>
                                 <div className='max-h-[300px] overflow-y-scroll mt-1 space-y-2'>
                                     {customItems.map((item, idx) => (
-                                    <div key={item.id} 
-                                        onClick={() => setSelectedItemId(item.id)} 
-                                        className={`flex items-start gap-2 border rounded-xl p-[8px] shadow-sm cursor-pointer bg-white transition
-                                            ${selectedItemId === item.id ? 'border-[#D0AC88] bg-[#fffaf3]' : 'hover:bg-[#fdf4ea]'}`}>
-                                        <img 
-                                            src={item.imageSrc}
-                                            alt={`미리보기 ${idx + 1}`}
-                                            className='w-[70px] h-[70px] object-cover object-center rounded-md border'
-                                        />
+                                        <div key={item.id} 
+                                            onClick={() => setSelectedItemId(item.id)} 
+                                            className={`flex items-start gap-2 border rounded-xl p-[8px] shadow-sm cursor-pointer bg-white transition
+                                                ${selectedItemId === item.id ? 'border-[#D0AC88] bg-[#fffaf3]' : 'hover:bg-[#fdf4ea]'}`}>
+                                            <img 
+                                                src={item.imageSrc}
+                                                alt={`미리보기 ${idx + 1}`}
+                                                className='w-[70px] h-[70px] object-cover object-center rounded-md border'
+                                            />
 
-                                        {/* 우측 영역 */}
-                                        <div className="flex-1 min-w-0 h-full">
-                                            <div className="flex items-start justify-between md:gap-0 gap-2 min-h-[30px]">
-                                                <div className='flex-1 h-fit text-start'>
-                                                    <p className='text-[12.5px] font-semibold text-gray-800'>
-                                                        {Math.floor(item.width)} x {Math.floor(item.height)}cm
-                                                    </p>
-                                                    <p className="mt-[-4px] mb-[4px]">
-                                                        <SitePriceRow
-                                                            unitPrice={item.price}
-                                                            neutralClassName={`${SITE_PRICE_TEXT} text-gray-800`}
-                                                        />
-                                                    </p>
+                                            {/* 우측 영역 */}
+                                            <div className="flex-1 min-w-0 h-full">
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <div className='flex-1 h-fit text-start'>
+                                                        <p className='text-[12.5px] font-semibold text-gray-800'>
+                                                            {Math.floor(item.width)} x {Math.floor(item.height)}cm
+                                                        </p>
+                                                        <p className="mt-[-4px] mb-[4px]">
+                                                            <SitePriceRow
+                                                                unitPrice={item.price}
+                                                                originalOrderTotal={totalPriceWithoutShipping}
+                                                                quantity={item.quantity ?? 1}
+                                                                neutralClassName={`${SITE_PRICE_TEXT} text-gray-800`}
+                                                            />
+                                                        </p>
+                                                    </div>
+
+                                                    {/* 삭제 버튼: 2개 이상일 때만 노출 */}
+                                                    {canDeleteItem && (
+                                                        <button
+                                                            type="button"
+                                                            className='w-6 h-6 shrink-0 text-red-500 hover:text-white hover:bg-red-500 border border-red-300 rounded-full flex items-center justify-center transition'
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const deleteId = item.id;
+
+                                                                setCustomItems(prev => {
+                                                                    const newItems = prev.filter((it) => it.id !== deleteId);
+
+                                                                    if (selectedItemId === deleteId) {
+                                                                        const next = newItems[0];
+                                                                        if (next) setSelectedItemId(next.id);
+                                                                    }
+                                                                    return newItems;
+                                                                });
+                                                            }}
+                                                        >
+                                                            ×
+                                                        </button>
+                                                    )}
                                                 </div>
 
-                                                {/* 삭제 버튼: 2개 이상일 때만 노출 */}
-                                                {canDeleteItem && (
-                                                    <button
-                                                        type="button"
-                                                        className='w-6 h-6 shrink-0 text-red-500 hover:text-white hover:bg-red-500 border border-red-300 rounded-full flex items-center justify-center transition'
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            const deleteId = item.id;
-
-                                                            setCustomItems(prev => {
-                                                                const newItems = prev.filter((it) => it.id !== deleteId);
-
-                                                                if (selectedItemId === deleteId) {
-                                                                    const next = newItems[0];
-                                                                    if (next) setSelectedItemId(next.id);
-                                                                }
-                                                                return newItems;
-                                                            });
-                                                        }}
-                                                    >
-                                                        ×
-                                                    </button>
-                                                )}
-                                            </div>
-                                            
-                                            {/* 수량 변경 버튼 */}
-                                            <div
-                                                className="flex items-center gap-1.5 mb-1"
-                                                onClick={(e) => e.stopPropagation()}
-                                            >
-                                                <button
-                                                    type="button"
-                                                    className="w-6 h-6 border rounded-md bg-white hover:bg-gray-100 text-[14px] font-bold flex items-center justify-center"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        updateItemQuantity(item.id, -1);
-                                                    }}
-                                                >
-                                                    -
-                                                </button>
-                                                <input 
-                                                    type="number" 
-                                                    min={1}
-                                                    value={item.quantity ?? 1}
+                                                {/* 수량 변경 버튼 */}
+                                                <div
+                                                    className="flex items-center gap-1.5 mb-1"
                                                     onClick={(e) => e.stopPropagation()}
-                                                    onChange={(e) => {
-                                                        e.stopPropagation();
-                                                        const { value } = e.target;
-                                                        if (value === '') return;
-                                                        setItemQuantity(item.id, value);
-                                                    }}
-                                                    onBlur={(e) => {
-                                                        e.stopPropagation();
-                                                        setItemQuantity(item.id, e.target.value || 1);
-                                                    }}
-                                                    className="w-10 h-6 border rounded-md bg-white text-center text-[13px] font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                                />
-                                                <button
-                                                    type="button"
-                                                    className="w-6 h-6 border rounded-md bg-white hover:bg-gray-100 text-[14px] font-bold flex items-center justify-center"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        updateItemQuantity(item.id, 1);
-                                                    }}
                                                 >
-                                                    +
-                                                </button>
-                                            </div>
+                                                    <button
+                                                        type="button"
+                                                        className="w-6 h-6 border rounded-md bg-white hover:bg-gray-100 text-[14px] font-bold flex items-center justify-center"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            updateItemQuantity(item.id, -1);
+                                                        }}
+                                                    >
+                                                        -
+                                                    </button>
+                                                    <input 
+                                                        type="number" 
+                                                        min={1}
+                                                        value={item.quantity ?? 1}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        onChange={(e) => {
+                                                            e.stopPropagation();
+                                                            const { value } = e.target;
+                                                            if (value === '') return;
+                                                            setItemQuantity(item.id, value);
+                                                        }}
+                                                        onBlur={(e) => {
+                                                            e.stopPropagation();
+                                                            setItemQuantity(item.id, e.target.value || 1);
+                                                        }}
+                                                        className="w-10 h-6 border rounded-md bg-white text-center text-[13px] font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        className="w-6 h-6 border rounded-md bg-white hover:bg-gray-100 text-[14px] font-bold flex items-center justify-center"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            updateItemQuantity(item.id, 1);
+                                                        }}
+                                                    >
+                                                        +
+                                                    </button>
+                                                </div>
 
-                                            <div className="flex justify-end">
-                                                <div className="w-full flex flex-row">
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            if (item.finishType !== 'matte') return;
-                                                            toggleFinishType(item.id);
-                                                        }}
-                                                        className={`
-                                                            flex-1 w-full h-[26px] rounded-md border text-[13px] font-semibold rounded-r-none
-                                                            ${ item.finishType !== 'matte' ? 'bg-[#ecd2af] text-white border-[#ecd2af]' : 'bg-white text-gray-500 opacity-90 border-gray-300 hover:bg-gray-100'}    
-                                                        `}
-                                                    >
-                                                        유광
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            if (item.finishType === 'matte') return;
-                                                            toggleFinishType(item.id);
-                                                        }}
-                                                        className={`
-                                                            flex-1 w-full h-[26px] rounded-md border border-l-0 text-[13px] font-semibold rounded-l-none
-                                                            ${ item.finishType === 'matte' ? 'bg-[#ecd2af] text-white border-[#ecd2af]' : 'bg-white text-gray-500 opacity-90 border-gray-300 hover:bg-gray-100'}    
-                                                        `}
-                                                    >
-                                                        무광
-                                                    </button>
+                                                <div className="flex justify-end">
+                                                    <div className="w-full flex flex-row">
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                if (item.finishType !== 'matte') return;
+                                                                toggleFinishType(item.id);
+                                                            }}
+                                                            className={`
+                                                                flex-1 w-full h-[26px] rounded-md border text-[13px] font-semibold rounded-r-none
+                                                                ${ item.finishType !== 'matte' ? 'bg-[#ecd2af] text-white border-[#ecd2af]' : 'bg-white text-gray-500 opacity-90 border-gray-300 hover:bg-gray-100'}    
+                                                            `}
+                                                        >
+                                                            유광
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                if (item.finishType === 'matte') return;
+                                                                toggleFinishType(item.id);
+                                                            }}
+                                                            className={`
+                                                                flex-1 w-full h-[26px] rounded-md border border-l-0 text-[13px] font-semibold rounded-l-none
+                                                                ${ item.finishType === 'matte' ? 'bg-[#ecd2af] text-white border-[#ecd2af]' : 'bg-white text-gray-500 opacity-90 border-gray-300 hover:bg-gray-100'}    
+                                                            `}
+                                                        >
+                                                            무광
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
                                     ))}
                                 </div>
                             </>
@@ -1326,15 +1339,21 @@ const None_Custom_Detail = () => {
                                 주문 후 평균 2~5일 내 수령
                             </div>
                             <span className="text-base font-semibold text-gray-700">
-                                총 결제금액 :{' '}
+                                결제금액 :{' '}
                                 <span className=" text-[#a57647]">
                                 <SitePriceTotal
                                     original={totalPriceWithoutShipping}
                                     discounted={totalPriceWithoutShippingDiscounted}
+                                    originalOrderTotal={totalPriceWithoutShipping}
                                     className={`${SITE_PRICE_TEXT} font-semibold text-[#a57647]`}
                                 />
                                 </span>
                             </span>
+                            {bulkDiscountPercent > 0 && bulkDiscountPercent >= Number(partnerDiscount || 0) && (
+                                <span className="text-[11px] font-medium text-[#45b035]">
+                                    대량주문할인 {bulkDiscountPercent}% 적용
+                                </span>
+                            )}
                         </div>
                         <div className="text-right">
                             {/* <div className="text-[13px] font-semibold text-[#a57647]">
@@ -1484,7 +1503,7 @@ const None_Custom_Detail = () => {
                                     {totalPriceWithoutShippingDiscounted.toLocaleString()}원
                                 </span>
                             )}
-                            <span>바로구매</span>
+                            바로구매
                         </button>
                         <div className="flex flex-row">
                             <button 
@@ -1584,21 +1603,23 @@ const None_Custom_Detail = () => {
                                 }
                                 const area = pw * ph;
                                 const original = calculateCumulativePrice(area);
-                                const effectivePartnerDiscount = adminQuoteApplyPartnerDiscount ? partnerDiscount : 0;
-                                const discounted = getDiscountedUnitPrice(original, effectivePartnerDiscount);
+                                const extraPercent = getEffectiveExtraPercent(
+                                    adminQuoteApplyPartnerDiscount ? partnerDiscount : 0,
+                                    original
+                                );
+                                const discounted = getDiscountedUnitPrice(original, extraPercent);
                                 const sitePct = getSiteDiscountPercent();
-                                const partnerPct = Math.max(0, Number(effectivePartnerDiscount) || 0);
+                                const bulkPct = getBulkDiscountPercent(original);
+                                const partnerPct = adminQuoteApplyPartnerDiscount
+                                    ? Math.max(0, Number(partnerDiscount) || 0)
+                                    : 0;
                                 const hasDiscount = discounted < original;
                                 const discountLabel = (() => {
-                                    if (sitePct > 0 && partnerPct > 0) {
-                                        return `사이트 ${sitePct}% + 파트너 ${partnerPct}% 할인 적용`;
-                                    }
-                                    if (sitePct > 0 && partnerPct > 0) {
-                                        return `사이트 ${sitePct}% + 파트너 ${partnerPct}% 할인 적용`;
-                                    }
-                                    if (sitePct > 0) return `사이트 ${sitePct}% 할인 적용`;
-                                    if (partnerPct > 0) return `파트너 ${partnerPct}% 할인 적용`;
-                                    return '';
+                                    const parts = [];
+                                    if (sitePct > 0) parts.push(`사이트 ${sitePct}%`);
+                                    if (bulkPct > 0 && bulkPct >= partnerPct) parts.push(`대량 ${bulkPct}`);
+                                    else if (partnerPct > 0) parts.push(`파트너 ${partnerPct}`);
+                                    return parts.length ? `${parts.join(' + ')} 할인 적용` : '';
                                 })();
                                 return (
                                     <div className="space-y-2">

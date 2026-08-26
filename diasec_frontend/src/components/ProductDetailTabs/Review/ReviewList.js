@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { MemberContext } from '../../../context/MemberContext';
 import { toast } from 'react-toastify';
 import axios from 'axios';
+import ReviewHoverZoomImage from '../../common/ReviewHoverZoomImage';
 
 const ReviewList = ({ pid }) => {
     const API = process.env.REACT_APP_API_BASE;
@@ -220,25 +221,15 @@ const ReviewList = ({ pid }) => {
 
                             <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3 md:px-5 md:pb-5">
                                 {/* 메인 이미지 */}
-                                <div
-                                    className="relative w-full aspect-[4/3] rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden cursor-zoom-in"
-                                    onClick={() => {
+                                <ReviewHoverZoomImage
+                                    src={selectedReview.images?.[selectedImageIndex]}
+                                    alt={`상세 이미지 ${selectedImageIndex + 1}`}
+                                    onOpenFull={() => {
                                         if (selectedReview.images?.[selectedImageIndex]) {
                                             setImageZoomOpen(true);
                                         }
                                     }}
-                                >
-                                    <img
-                                        src={selectedReview.images?.[selectedImageIndex]}
-                                        alt={`상세 이미지 ${selectedImageIndex + 1}`}
-                                        className="max-w-full max-h-full object-contain"
-                                    />
-                                    {selectedReview.images?.[selectedImageIndex] && (
-                                        <span className="absolute bottom-2 right-2 rounded-full bg-black/55 px-2 py-0.5 text-[11px] text-white">
-                                            클릭하여 확대
-                                        </span>
-                                    )}
-                                </div>
+                                />
 
                                 {/* 썸네일 */}
                                 <div className="mt-2 md:mt-3 flex flex-wrap justify-center gap-2">
