@@ -30,7 +30,7 @@ const ReviewWrite = () => {
 
     // 이미지 업로드
     const MAX_IMAGES = 5;
-    const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5MB
+    const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10MB
     const COMPRESS_MAX_PX = 1000;
     const COMPRESS_JPEG_QUALITY = 1;
 
@@ -118,7 +118,7 @@ const ReviewWrite = () => {
         }
         for (const file of files) {
             if (file.size > MAX_FILE_BYTES) {
-                toast.error('각 이미지는 5MB 이하만 등록 가능합니다.');
+                toast.error('각 이미지는 10MB 이하만 등록 가능합니다.');
                 return;
             }
             setImages(files);
@@ -186,7 +186,7 @@ const ReviewWrite = () => {
                 headers: { 'Content-Type' : 'multipart/form-data' }
             });
             const rewardAmount = Number(res?.data?.rewardAmount || 0);
-            // [종료된 이벤트] 후기 작성 시 5000P 지급 — rewardAmount > 0 일 때만 아래 토스트 노출
+            // [종료된 이벤트] 후기 작성 시 5000P 지급 - rewardAmount > 0 일 때만 아래 토스트 노출
             if (rewardAmount > 0) {
                 toast.success(`리뷰가 등록되었습니다. 이벤트 적립금 ${rewardAmount.toLocaleString()}원이 지급되었어요.`);
             } else {
@@ -246,11 +246,11 @@ const ReviewWrite = () => {
                         비회원 주문 리뷰 작성입니다.
                     </p>
                 )}
-                {/*
-                  [종료된 이벤트] 후기 작성 시 5000P 지급
-                  - 재개 시 아래 문구 복구 가능:
-                  비회원 리뷰는 적립금 이벤트 대상에서 제외됩니다.
-                */}
+                {/**
+                 [종료된 이벤트] 후기 작성 시 5000P 지급
+                 - 재개 시 아래 문구 복구 가능:
+                 비회원 리뷰는 이벤트 대상에서 제외됩니다.
+                 */}
 
                 { /* 상품 미리보기*/}
                 {selectedProduct && (
@@ -369,7 +369,7 @@ const ReviewWrite = () => {
                         }
                         for (const file of files) {
                         if (file.size > MAX_FILE_BYTES) {
-                            toast.error('각 이미지는 5MB 이하만 등록 가능합니다.');
+                            toast.error('각 이미지는 10MB 이하만 등록 가능합니다.');
                             return;
                         }
                         }
@@ -380,7 +380,7 @@ const ReviewWrite = () => {
                     >
                     <label className="cursor-pointer block md:text-sm text-[clamp(11px,1.824vw,14px)]">
                         여기에 이미지를 드래그하거나 클릭하여 선택하세요 <br />
-                        <span className="md:text-xs text-[clamp(10px,1.564vw,12px)] text-gray-400">(최소 1장, 최대 5장, 각 5MB 이하)</span>
+                        <span className="md:text-xs text-[clamp(10px,1.564vw,12px)] text-gray-400">(최소 1장, 최대 5장, 각 10MB 이하)</span>
                         <input
                         type="file"
                         accept="image/png, image/jpeg"
@@ -393,7 +393,7 @@ const ReviewWrite = () => {
                             }
                             for (const file of files) {
                             if (file.size > MAX_FILE_BYTES) {
-                                toast.error('각 이미지는 5MB 이하만 등록 가능합니다.');
+                                toast.error('각 이미지는 10MB 이하만 등록 가능합니다.');
                                 return;
                             }
                             }
