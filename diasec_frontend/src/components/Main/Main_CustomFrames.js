@@ -18,6 +18,8 @@ import {
     SitePriceTotal,
     SITE_PRICE_TEXT,
 } from '../common/SitePriceDisplay';
+import DeskStandInfoModal from '../common/DeskStandInfoModal';
+import { MIN_FRAME_PRICE } from '../../utils/customFramePrice';
 
 // 드롭메뉴 사진
 import c1 from '../../assets/dropDownMenu/customFrame/c1.jpg';
@@ -111,6 +113,7 @@ const Main_CustomFrames = () => {
 
     /** cm만 넣어 견적 확인(주문·이미지에 반영 안 함) */
     const [adminQuoteModalOpen, setAdminQuoteModalOpen] = useState(false);
+    const [deskStandModalOpen, setDeskStandModalOpen] = useState(false);
     const [adminQuoteW, setAdminQuoteW] = useState('');
     const [adminQuoteH, setAdminQuoteH] = useState('');
 
@@ -687,7 +690,7 @@ const Main_CustomFrames = () => {
             remainingArea -= tierArea;
             lastMax = tier.maxArea;
         }
-        return Math.max(25000, Math.floor(Math.round(totalPrice) / 1000) * 1000);
+        return Math.max(MIN_FRAME_PRICE, Math.floor(Math.round(totalPrice) / 1000) * 1000);
     }
 
     // 사이즈 조정바 최대 width 계산
@@ -1528,18 +1531,32 @@ const Main_CustomFrames = () => {
 
                                             {/* 우측 영역 */}
                                             <div className='flex-1 min-w-0'>
-                                                <div className="flex items-start justify-between md:gap-0 gap-2 min-h-[30px]">
-                                                    <div className="min-w-0">
+                                                <div className="flex items-start justify-between gap-2 min-h-[30px]">
+                                                    <div className="min-w-0 w-full">
                                                         {item.isUploading ? (
                                                             <p className='text-[12.5px] font-semibold text-gray-700'>
                                                                 이미지 렌더링 중...
                                                             </p>
                                                         ) : (
                                                             <>
-                                                                <p className='text-[12.5px] font-semibold text-gray-800'>
-                                                                    {Math.round(item.width)} x {Math.round(item.height)}cm
-                                                                </p>
-                                                                <p className="mt-[-4px] mb-[4px]">
+                                                                <div className="flex flex-row justify-between">
+                                                                    <p className='text-[12.5px] font-semibold text-gray-800'>
+                                                                        {Math.round(item.width)} x {Math.round(item.height)}cm
+                                                                    </p>
+                                                                    {Number(item.price) <= MIN_FRAME_PRICE && (
+                                                                        <button
+                                                                            type="button"
+                                                                            className="shrink-0 text-[11px] px-1.5 py-0.5 rounded border border-[#D0AC88] text-[#a57647] hover:bg-[#fff5ea] font-medium"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setDeskStandModalOpen(true);
+                                                                            }}
+                                                                        >
+                                                                            탁상용?
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                                <p className="mt-[-4px] mb-[4px] flex items-center gap-1.5 flex-wrap">
                                                                     <SitePriceRow
                                                                         unitPrice={item.price}
                                                                         quantity={item.quantity ?? 1}
@@ -1547,52 +1564,6 @@ const Main_CustomFrames = () => {
                                                                         neutralClassName={`${SITE_PRICE_TEXT} text-gray-800`}
                                                                     />
                                                                 </p>
-
-                                                                {/* 수량 변경 버튼 */}                                                               
-                                                                {!item.isUploading && (
-                                                                    <div
-                                                                        className="flex items-center gap-1.5 mb-1"
-                                                                        onClick={(e) => e.stopPropagation()}
-                                                                    >
-                                                                        <button
-                                                                            type="button"
-                                                                            className="w-6 h-6 border rounded-md bg-white hover:bg-gray-100 text-[14px] font-bold flex items-center justify-center"
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                updateItemQuantity(item.id, -1);
-                                                                            }}
-                                                                        >
-                                                                            -
-                                                                        </button>
-                                                                        <input 
-                                                                            type="number" 
-                                                                            min={1}
-                                                                            value={item.quantity ?? 1}
-                                                                            onClick={(e) => e.stopPropagation()}
-                                                                            onChange={(e) => {
-                                                                                e.stopPropagation();
-                                                                                const { value } = e.target;
-                                                                                if (value === '') return;
-                                                                                setItemQuantity(item.id, value);
-                                                                            }}
-                                                                            onBlur={(e) => {
-                                                                                e.stopPropagation();
-                                                                                setItemQuantity(item.id, e.target.value || 1);
-                                                                            }}
-                                                                            className="w-10 h-6 border rounded-md bg-white text-center text-[13px] font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                                                        />
-                                                                        <button
-                                                                            type="button"
-                                                                            className="w-6 h-6 border rounded-md bg-white hover:bg-gray-100 text-[14px] font-bold flex items-center justify-center"
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                updateItemQuantity(item.id, 1);
-                                                                            }}
-                                                                        >
-                                                                            +
-                                                                        </button>
-                                                                    </div>
-                                                                )}
                                                             </>
                                                         )}
                                                     </div>
@@ -1645,6 +1616,54 @@ const Main_CustomFrames = () => {
                                                     >
                                                         ×
                                                     </button>
+                                                </div>
+
+                                                <div>
+                                                    {/* 수량 변경 버튼 */}                                                               
+                                                    {!item.isUploading && (
+                                                        <div
+                                                            className="flex items-center gap-1.5 mb-1"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            <button
+                                                                type="button"
+                                                                className="w-6 h-6 border rounded-md bg-white hover:bg-gray-100 text-[14px] font-bold flex items-center justify-center"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    updateItemQuantity(item.id, -1);
+                                                                }}
+                                                            >
+                                                                -
+                                                            </button>
+                                                            <input 
+                                                                type="number" 
+                                                                min={1}
+                                                                value={item.quantity ?? 1}
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                onChange={(e) => {
+                                                                    e.stopPropagation();
+                                                                    const { value } = e.target;
+                                                                    if (value === '') return;
+                                                                    setItemQuantity(item.id, value);
+                                                                }}
+                                                                onBlur={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setItemQuantity(item.id, e.target.value || 1);
+                                                                }}
+                                                                className="w-10 h-6 border rounded-md bg-white text-center text-[13px] font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                className="w-6 h-6 border rounded-md bg-white hover:bg-gray-100 text-[14px] font-bold flex items-center justify-center"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    updateItemQuantity(item.id, 1);
+                                                                }}
+                                                            >
+                                                                +
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 {/* 보정상태와 버튼 */}
@@ -2102,6 +2121,11 @@ const Main_CustomFrames = () => {
                     </div>
                 </div>
             )}
+
+            <DeskStandInfoModal
+                open={deskStandModalOpen}
+                onClose={() => setDeskStandModalOpen(false)}
+            />
 
             {adminQuoteModalOpen && (
                 <div

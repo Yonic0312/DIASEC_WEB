@@ -257,7 +257,7 @@ const AdminRetouchList = () => {
 
                             {/* 주문자 */}
                             <div className="text-center col-span-2">
-                                <div>{row.memberId || "-"}</div>
+                                <div>{row.recipient || "-"}</div>
                             </div>
                             
                             {/* 상품/보정요청 */}

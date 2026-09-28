@@ -6,7 +6,8 @@ import { useSitePromo } from '../../context/SitePromoContext';
 const SitePromoBar = () => {
     const { siteDiscountPercent } = useSitePromo();
     const pct = Math.max(0, Number(siteDiscountPercent) || 0);
-    const label = pct > 0 ? `OPEN 기념 ${pct}% 할인 마감임박(~ 09.24) + 무료배송` : '+ 무료배송';
+    // const label = pct > 0 ? `OPEN 기념 ${pct}% 할인 마감임박(~ 09.24) + 무료배송` : '+ 전 상품 무료 배송';
+    const label = '전 상품 무료 배송';
 
     const [dismissed, setDismissed] = useState(false);
     const [scrollHidden, setScrollHidden] = useState(false);
