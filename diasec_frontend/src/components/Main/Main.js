@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Star, Truck, Clock, ShieldCheck } from "lucide-react";
+import { ChevronLeft, ChevronRight, Frame, Star, Truck, Clock } from "lucide-react";
 import axios from 'axios';
 import { getMinFrameConfigByRatio } from '../../utils/customFramePrice';
 import { SitePriceRow, SITE_PRICE_TEXT } from '../common/SitePriceDisplay';
@@ -359,6 +359,7 @@ const Main = () => {
     // [리뷰] 상단 리뷰 슬라이더
     const [topThumbnailReviews, setTopThumbnailReviews] = useState([]);
     const [reviewStats, setReviewStats] = useState({ count: 0, avgRating: null });
+    const [soldFrameCount, setSoldFrameCount] = useState(null);
     const [selectedReview, setSelectedReview] = useState(null);
 
     // 화면 데이터에 맞게 reviewIndex 범위 클렘프
@@ -480,6 +481,26 @@ const Main = () => {
         return () => controller.abort();
     }, [API]);
 
+    useEffect(() => {
+        const controller = new AbortController();
+
+        (async () => {
+            try {
+                const data = await getData(API, '/site-setting/sold-frames', {
+                    signal: controller.signal,
+                });
+                const total = Number(data?.totalCount ?? 0);
+                setSoldFrameCount(Number.isFinite(total) ? total : 0);
+            } catch (err) {
+                if (err?.name === 'CanceledError') return;
+                console.error('판매 수량 로딩 실패:', err);
+                setSoldFrameCount(null);
+            }
+        })();
+
+        return () => controller.abort();
+    }, [API]);
+
     // [이벤트] 
     const [events, setEvents] = useState([]);
 
@@ -557,7 +578,7 @@ const Main = () => {
                         >
                             <img
                                 src={item.image}
-                                alt=""
+                                alt="" 
                                 className="h-full w-full object-cover transition duration-300 group-hover:opacity-90"
                             />
                             <div className="absolute inset-0 bg-black/20 transition-colors duration-300 group-hover:bg-black/30" />
@@ -604,6 +625,12 @@ const Main = () => {
                                         <span className="underline underline-offset-2">리뷰 {reviewStats.count.toLocaleString()}건</span>
                                     </span>
                                 )}
+                                {soldFrameCount != null && soldFrameCount > 0 && (
+                                    <span className="inline-flex items-center gap-1">
+                                        <Frame className="w-3.5 h-3.5 text-[#d0ac88]" />
+                                        판매된 액자 {soldFrameCount.toLocaleString()}개
+                                    </span>
+                                )}
                                 <span className="inline-flex items-center gap-1">
                                     <Truck className="w-3.5 h-3.5 text-[#d0ac88]" />
                                     무료배송
@@ -611,10 +638,6 @@ const Main = () => {
                                 <span className="inline-flex items-center gap-1">
                                     <Clock className="w-3.5 h-3.5 text-[#d0ac88]" />
                                     평균 2~5일 내 수령
-                                </span>
-                                <span className="inline-flex items-center gap-1">
-                                    <ShieldCheck className="w-3.5 h-3.5 text-[#d0ac88]" />
-                                    안전결제
                                 </span>
                             </div>
                         </div>
