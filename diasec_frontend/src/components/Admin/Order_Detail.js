@@ -4,7 +4,6 @@ import { toast } from 'react-toastify';
 import axios from 'axios';
 import { resolveTrackingLookupUrl } from '../../utils/deliveryTrackingUrls';
 import thumbCustom from '../../assets/CustomFrames/customFrames.png';
-import { MIN_FRAME_PRICE } from '../../utils/customFramePrice';
 
 const PRINT_ORDER_STYLES = `
     .print-wrap {
@@ -696,7 +695,7 @@ const Order_Detail = () => {
             }
         }
     }
-    const renderPrintSize = (size, unitPrice) => {
+    const renderPrintSize = (size) => {
         if (!size || typeof size !== 'string') return size;
 
         const match = size.match(/([\d.]+)\s*[xX]\s*([\d.]+)/);
@@ -719,7 +718,7 @@ const Order_Detail = () => {
         const bW = wCm + 5;
         const bH = hCm + 5;
 
-        const isSmallFrame = Number(unitPrice) <= MIN_FRAME_PRICE;
+        const isSmallFrame = wCm <= 30 && hCm <= 30;
 
         return (
             <>
@@ -1201,7 +1200,7 @@ const Order_Detail = () => {
 
                             <div className="print-size-line whitespace-pre flex flex-wrap items-center gap-2">
                                 <span className="print-label">사이즈:</span>
-                                {renderPrintSize(order.items[0].size, order.items[0].price)}
+                                {renderPrintSize(order.items[0].size)}
                                 <button
                                     type="button"
                                     className="no-print px-2 py-0.5 text-[11px] font-medium border rounded bg-gray-800 text-white hover:bg-gray-700"
@@ -1428,7 +1427,7 @@ const Order_Detail = () => {
                                 상품을 아래 주소로 선불 발송해 주세요.<br/><br/>
                                 <span className="font-normal text-gray-800">
                                     경기 고양시 덕양구 통일로 140 (동산동, 삼송테크노밸리) A동 355호 <br/>
-                                    수신자: 디아섹 / 연락처 : 010-0000-0000
+                                    수신자: 디아섹코리아 / 연락처 : 010-4231-5879
                                 </span>
                             </>
                             )}

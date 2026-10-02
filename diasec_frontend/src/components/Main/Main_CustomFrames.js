@@ -1582,7 +1582,7 @@ const Main_CustomFrames = () => {
                                                                     <p className='text-[12.5px] font-semibold text-gray-800'>
                                                                         {Math.round(item.width)} x {Math.round(item.height)}cm
                                                                     </p>
-                                                                    {Number(item.price) <= MIN_FRAME_PRICE && (
+                                                                    {Number(item.width) <= 30 && Number(item.height) <= 30 && (
                                                                         <button
                                                                             type="button"
                                                                             className="shrink-0 text-[11px] px-1.5 py-0.5 rounded border border-[#D0AC88] text-[#a57647] hover:bg-[#fff5ea] font-medium"
