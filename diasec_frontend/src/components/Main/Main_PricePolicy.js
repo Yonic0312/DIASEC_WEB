@@ -3,7 +3,7 @@ import P1 from '../../assets/whatDiasec/1.jpg'
 const reasons = [
     {
         title: '검증된 자재',
-        desc: '그이유는 독입수입용지와 변색이 적은 울트라 크롬잉크, 자체 개발한 뒷면 프레임 등 검증된 자재만을 사용하기 때문입니다',
+        desc: '그이유는 독일 수입 용지와 변색이 적은 울트라 크롬잉크, 자체 개발한 뒷면 프레임 등 검증된 자재만을 사용하기 때문입니다',
     },
     {
         title: '공법의 노하우',
@@ -38,7 +38,7 @@ const Main_PricePolicy = () => {
                     <section className="flex flex-col lg:flex-row items-start gap-4 md:gap-10 mb-10">
                         <div className="w-full max-w-[850px] flex flex-col justify-center md:flex-row md:items-stretch px-4 gap-8 md:gap-10">
                             <div className="w-full md:w-[40%] shrink-0 overflow-hidden rounded-xl bg-gray-100 shadow-sm ring-1 ring-black/5">
-                                <img
+                                <img 
                                     className="w-full h-auto object-cover" 
                                     src={P1} 
                                     alt="디아섹 작품 보존"
@@ -48,7 +48,7 @@ const Main_PricePolicy = () => {
                                 <h3 className="
                                     text-[15px] md:text-[22px]
                                     font-bold text-gray-900">
-                                    고객의 추억을 오랜 기간 동안 간직하도록 설계 제작된 정통 디아섹을 만듭니다
+                                    디아섹코리아의 제품가격은 결코 저렴하지 않습니다
                                 </h3>
                                 <span className=" text-[13px] md:text-[17px] leading-relaxed text-gray-600">
                                     디아섹코리아는 디아섹 최초 개발자인
