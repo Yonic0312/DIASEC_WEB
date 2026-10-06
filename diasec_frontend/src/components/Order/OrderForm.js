@@ -177,6 +177,8 @@ const OrderForm = () => {
 
     // 크레딧 계산
     const [usedCredit, setUsedCredit] = useState(0);
+    const [useFullCredit, setUseFullCredit] = useState(false);
+    const FULL_CREDIT_PAYMENT_METHOD = '적립금';
 
     // OrderForm에서 수정 가능한 주문 아이템 상태로 복사
     const [items, setItems] = useState(() => 
@@ -202,7 +204,57 @@ const OrderForm = () => {
         0
     );
     const deliveryFee = 0; // 배송비
-    const finalPrice = Math.max(totalPrice - usedCredit + deliveryFee + deposit, 0);
+    const CARD_MIN_PAYMENT = 100;
+    const payableBeforeCredit = totalPrice + deliveryFee + deposit;
+    const availableCredit = !isGuest ? Number(credit || 0) : 0;
+
+    const maxUsableCredit = (() => {
+        const cap = Math.min(availableCredit, payableBeforeCredit);
+        // 적립금만으로 전액 결제 가능한 경우
+        if (cap >= payableBeforeCredit) return cap;
+        // 카드 결제 시 PG 최소 결제금액 확보
+        if (paymentMethod === '카드결제') {
+            return Math.max(0, Math.min(cap, payableBeforeCredit - CARD_MIN_PAYMENT));
+        }
+        return cap;
+    })();
+
+    const finalPrice = Math.max(payableBeforeCredit - usedCredit, 0);
+    const isCreditOnlyPayment = payableBeforeCredit > 0 && usedCredit >= payableBeforeCredit;
+
+    // "모두 사용" 체크 시 사용 가능한 최대치로 자동 입력 (결제수단 변경 시에도 재계산)
+    useEffect(() => {
+        if (useFullCredit) setUsedCredit(maxUsableCredit);
+    }, [useFullCredit, maxUsableCredit]);
+
+    useEffect(() => {
+        setUsedCredit((prev) => {
+            let v = Math.max(0, Math.min(prev, maxUsableCredit));
+            if (paymentMethod === '카드결제') {
+                const remain = payableBeforeCredit - v;
+                if (remain > 0 && remain < CARD_MIN_PAYMENT) {
+                    v = Math.max(0, payableBeforeCredit - CARD_MIN_PAYMENT);
+                }
+            }
+            return v;
+        });
+    }, [maxUsableCredit, paymentMethod, payableBeforeCredit]);
+
+    useEffect(() => {
+        if (isCreditOnlyPayment) setPaymentMethod('');
+    }, [isCreditOnlyPayment]);
+
+    // 카드결제 시 남는 결제금액이 1~99원이 되지 않도록 적립금 보정
+    const normalizeCredit = (value) => {
+        let v = Math.max(0, Math.min(value, maxUsableCredit));
+        if (paymentMethod === '카드결제') {
+            const remain = payableBeforeCredit - v;
+            if (remain > 0 && remain < CARD_MIN_PAYMENT) {
+                v = Math.max(0, payableBeforeCredit - CARD_MIN_PAYMENT);
+            }
+        }
+        return v;
+    };
     
 
     // 예시 유효성 검사 (결제 버튼 클릭 시)
@@ -239,7 +291,16 @@ const OrderForm = () => {
             return false;
         }
 
-        if (!paymentMethod) {
+        if (isCreditOnlyPayment) {
+            if (!member?.id) {
+                toast.error('적립금 전액 결제는 로그인 회원만 가능합니다.');
+                return false;
+            }
+            if (Number(credit || 0) < payableBeforeCredit) {
+                toast.error('보유 적립금이 부족합니다.');
+                return false;
+            }
+        } else if (!paymentMethod) {
             toast.error("결제수단을 선택해주세요.");
             return false;
         }
@@ -255,7 +316,6 @@ const OrderForm = () => {
     // [결제 / 무통장입금]
     const [bankAccount, setBankAccount] = useState('');
     const [depositor, setDepositor] = useState('');
-    const orderStatus = paymentMethod === "무통장입금" ? "입금대기" : "결제완료";
 
     // 상세주소 검색
     const [scriptLoaded, setScriptLoaded] = useState(false);
@@ -296,6 +356,12 @@ const OrderForm = () => {
     // 주문
     const handleOrder = async () => {
         if (!validateOrder()) return;
+
+        if (isCreditOnlyPayment) {
+            await submitOrder({ paymentMethod: FULL_CREDIT_PAYMENT_METHOD });
+            return;
+        }
+
         submitOrder();
         return;
 
@@ -352,7 +418,12 @@ const OrderForm = () => {
         }
     }
 
-    const submitOrder = async () => {
+    const submitOrder = async (paymentExtra = {}) => {
+        const finalPaymentMethod = paymentExtra.paymentMethod || paymentMethod;
+        const finalOrderStatus = finalPaymentMethod === "무통장입금" ? "입금대기" : "결제완료";
+        const orderUsedCredit = isCreditOnlyPayment ? payableBeforeCredit : usedCredit;
+        const orderFinalPrice = isCreditOnlyPayment ? 0 : finalPrice;
+
         const orderData = {
             id: member ? member.id : '',
             ordererName,
@@ -362,8 +433,8 @@ const OrderForm = () => {
             postcode,
             address,
             detailAddress,
-            usedCredit,
-            paymentMethod,
+            usedCredit: orderUsedCredit,
+            paymentMethod: finalPaymentMethod,
             depositor,
             bankAccount,
             // receiptType,
@@ -371,7 +442,7 @@ const OrderForm = () => {
             // receiptMethod,
             totalPrice,
             totalDeposit,
-            finalPrice,
+            finalPrice: orderFinalPrice,
             deliveryFee,
             deliveryMessage,
             buyerRequest,
@@ -390,7 +461,7 @@ const OrderForm = () => {
                 // 맞춤액자는 주문 확정 시 multipart 파일로 업로드 후 서버에서 URL 세팅
                 thumbnail: item.category === 'customFrames' ? null : item.thumbnail,
                 thumbnailPreview: item.category === 'customFrames' ? null : item.thumbnailPreview,
-                orderStatus,
+                orderStatus: finalOrderStatus,
                 deposit: item.deposit,
                 finishType: item.finishType ?? 'glossy',
 
@@ -432,13 +503,13 @@ const OrderForm = () => {
                 navigate('/orderComplete', {
                     state: {
                         oid: response.data.oid,
-                        paymentMethod,
-                        finalPrice,
+                        paymentMethod: finalPaymentMethod,
+                        finalPrice: orderFinalPrice,
                         address: `${address} ${detailAddress}`,
                         guestPassword: isGuest ? guestPassword : null,
 
                         // 무통장일 때 보여줄 정보
-                        bankTransferInfo: paymentMethod === "무통장입금" ? {
+                        bankTransferInfo: finalPaymentMethod === "무통장입금" ? {
                             bankAccount,
                             depositor,
                             dueText: "주문 후 24시간 이내 입금해 주세요.",
@@ -1091,7 +1162,7 @@ const OrderForm = () => {
             </div>
             <hr/>
             
-            {member && (
+            {!isGuest && (
                 <>
                     <div className="
                         w-full mt-10 font-bold
@@ -1109,26 +1180,58 @@ const OrderForm = () => {
                                 적립금
                             </div>
                             <div>
-                                <div className="flex flex-row items-center">
-                                    <input type="text" inputMode="numeric" className="w-full md:w-[120px] border-[1px] h-8 pl-2 mr-1" value={usedCredit} 
+                                <div className="flex flex-row items-center flex-wrap gap-2">
+                                    <input
+                                        type="text"
+                                        inputMode="numeric"
+                                        className="w-full md:w-[120px] border-[1px] h-8 pl-2 mr-1"
+                                        value={usedCredit}
+                                        disabled={useFullCredit}
                                         onChange={(e) => {
-                                            const input = Number(e.target.value);
-                                            const maxCredit = Math.min(
-                                                Number(credit || 0),
-                                                totalPrice
-                                            );
+                                            const input = Number(String(e.target.value).replace(/\D/g, '') || 0);
+                                            const next = normalizeCredit(input);
 
-                                            if (input > maxCredit) {
-                                                toast.error("보유 적립금보다 많이 입력할 수 없습니다.");
-                                                setUsedCredit(maxCredit);
-                                            } else if (input < 0) {
-                                                setUsedCredit(0);
-                                            } else {
-                                                setUsedCredit(input);
+                                            if (next !== input) {
+                                                if (input > availableCredit) {
+                                                    toast.error("보유 적립금보다 많이 입력할 수 없습니다.");
+                                                } else if (input > payableBeforeCredit) {
+                                                    toast.error("결제금액보다 많이 사용할 수 없습니다.");
+                                                } else if (paymentMethod === '카드결제') {
+                                                    toast.info(`카드·간편결제는 최종 결제금액이 ${CARD_MIN_PAYMENT}원 이상이어야 합니다. 적립금을 ${next.toLocaleString()}원으로 조정했습니다.`);
+                                                }
                                             }
+                                            setUsedCredit(next);
                                     }}/>
                                     <span>원</span>
+                                    <label className="flex items-center gap-1 text-sm cursor-pointer select-none">
+                                        <input
+                                            type="checkbox"
+                                            checked={useFullCredit}
+                                            disabled={availableCredit <= 0}
+                                            onChange={(e) => {
+                                                const checked = e.target.checked;
+                                                setUseFullCredit(checked);
+                                                if (!checked) setUsedCredit(0);
+                                            }}
+                                        />
+                                        모두 사용
+                                    </label>
                                 </div>
+                                {isCreditOnlyPayment && (
+                                    <p className="mt-1 text-[12px] md:text-[13px] text-[#a57647]">
+                                        적립금으로 전액 결제됩니다. 별도 결제 없이 주문이 완료됩니다.
+                                    </p>
+                                )}
+                                {useFullCredit && !isCreditOnlyPayment && usedCredit > 0 && (
+                                    <p className="mt-1 text-[12px] md:text-[13px] text-[#a57647]">
+                                        적립금 {usedCredit.toLocaleString()}원 사용 후, 남은 {finalPrice.toLocaleString()}원은 아래 결제수단으로 결제됩니다.
+                                    </p>
+                                )}
+                                {paymentMethod === '카드결제' && (
+                                    <p className="mt-1 text-[12px] md:text-[13px] text-gray-500">
+                                        카드·간편결제 시 최종 결제금액은 {CARD_MIN_PAYMENT}원 이상이어야 합니다. (적립금 자동 조정)
+                                    </p>
+                                )}
                                 <span className="
                                     text-[12px] md:text-[14px]
                                     text-right text-gray-500"
@@ -1140,6 +1243,8 @@ const OrderForm = () => {
                     </div>
                 </>
             )}
+            {!isCreditOnlyPayment && (
+            <>
             <div 
                 className="
                     w-full mt-10 font-bold pl-2
@@ -1193,7 +1298,9 @@ const OrderForm = () => {
                         <span className="flex">- 자세한 내용은 카카오페이에서 제공하는 카드사별 정책을 확인해주세요.</span>
                     </div>
                 )}
-            </div> 
+            </div>
+            </>
+            )}
             
             <div className="
                 w-full mt-10 pl-2 font-bold
@@ -1265,7 +1372,11 @@ const OrderForm = () => {
 
                 <div className='w-full h-[50px] px-3 mt-5'
                     onClick={handleOrder}>
-                    <button className="w-full h-[50px] bg-black text-white "> <span className='font-semibold'>{finalPrice.toLocaleString()}원</span> 결제하기 </button>
+                    <button className="w-full h-[50px] bg-black text-white ">
+                        <span className='font-semibold'>
+                            {isCreditOnlyPayment ? '적립금 전액 결제' : `${finalPrice.toLocaleString()}원 결제하기`}
+                        </span>
+                    </button>
                 </div>
             </div>
             <RetouchModal
