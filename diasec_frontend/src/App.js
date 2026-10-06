@@ -313,7 +313,7 @@ function SeoMetaManager() {
             };
         } else if (path === '/pricePolicy') {
             seo = {
-                title: `가격정책 | 디아섹코리아${promoTitle}`,
+                title: `10년 품질보증 | 디아섹코리아${promoTitle}`,
                 description:
                     '디아섹코리아의 가격 정책. 정통 디아섹 공법과 검증된 자재, 10년 품질 보증을 바탕으로 한 품질 기준을 안내합니다.',
                 canonical: `${origin}/pricePolicy`,
@@ -560,7 +560,7 @@ function App() {
                         <Route path="/orderForm" element={<OrderForm/>} />
                         <Route path="/orderComplete" element={<OrderComplete/>} />
                         <Route path="/introduce" element={<Main_Introduce/>} />
-                        <Route path="/pricePolicy" element={<AdminRoute><Main_PricePolicy/></AdminRoute>} />
+                        <Route path="/pricePolicy" element={<Main_PricePolicy />} />
                         <Route path="/mainEvent" element={<Main_Event/>} />
                         <Route path="/mainEventDetail/:id" element={<Main_EventDetail/>} />
                         <Route path="/reviewWrite" element={<ReviewWrite/>} />
