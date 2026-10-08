@@ -82,6 +82,9 @@ public class SecurityConfig {
                     "/api/sms/**", "/login/**", "/oauth2/**", "/error"
                 ).permitAll()
 
+                .requestMatchers(HttpMethod.POST, "/api/credit/add", "/api/credit/manual").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/credit/**").hasRole("ADMIN")
+
                 // 4. 비회원 주문 관련
                 .requestMatchers(
                     "/api/order/insert", "/api/order/guest-search", "/api/order/detail/**", 
@@ -127,6 +130,13 @@ public class SecurityConfig {
                 .requestMatchers("/api/product/insert", "/api/order/delete", "/api/inquiry/answer", "/api/event/insert").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/review/hide/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/review/delete/**").hasRole("ADMIN")
+
+                .requestMatchers(
+                    "/api/member/list",
+                    "/api/member/change-role",
+                    "/api/member/reset-password",
+                    "/api/member/update-member"
+                ).hasRole("ADMIN")
 
                 // 3. 로그인 사용자만 가능
                 .requestMatchers("/api/member/**").authenticated()
