@@ -310,7 +310,7 @@ const Order_Status = () => {
     // 페이징
     const itemsPerPage = 10;
 
-    const totalPages = Math.max(1, Math.ceil(orderList.length / itemsPerPage));
+    const totalPages = Math.max(1, Math.ceil(groupedOrderList.length / itemsPerPage));
     const currentItems = groupedOrderList.slice(
         (currentPage - 1) * itemsPerPage, 
         currentPage * itemsPerPage
