@@ -386,17 +386,17 @@ const Order_Status = () => {
                 <table className="w-full text-sm border-collapse">
                     <thead className="bg-gray-100 border-b">
                         <tr className="text-center">
-                            <th className="w-[9%] p-3 font-medium text-gray-700">주문일자</th>
-                            <th className="w-[7%] p-3 font-medium text-gray-700">주문번호</th>
-                            <th className="w-[9%] p-3 font-medium text-gray-700">회원ID</th>
-                            <th className="w-[8%] p-3 font-medium text-gray-700">주문자</th>
-                            <th className="w-[9%] p-3 font-medium text-gray-700">카테고리</th>
-                            <th className="w-[26%] p-3 font-medium text-gray-700">상품명</th>
-                            <th className="w-[5%] p-3 text-center font-medium text-gray-700">수량</th>
+                            <th className="w-[9%] p-2 font-medium text-gray-700">주문일자</th>
+                            <th className="w-[7%] p-2 font-medium text-gray-700">주문번호</th>
+                            <th className="w-[9%] p-2 font-medium text-gray-700">회원ID</th>
+                            <th className="w-[8%] p-2 font-medium text-gray-700">주문자</th>
+                            <th className="w-[9%] p-2 font-medium text-gray-700">카테고리</th>
+                            <th className="w-[26%] p-2 font-medium text-gray-700">상품명</th>
+                            <th className="w-[5%] text-center p-2 font-medium text-gray-700">수량</th>
                             {/* <th className="w-[10%] p-3 text-center font-medium text-gray-700">단가</th> */}
-                            <th className="w-[12%] p-3 font-medium text-gray-700">총금액</th>
-                            <th className="w-[8.8%] p-3 font-medium text-gray-700">상태</th>
-                            <th className="w-[5.5%] p-3 font-medium text-gray-700">변경</th>
+                            <th className="w-[12%] p-2 font-medium text-gray-700">총금액</th>
+                            <th className="w-[8.8%] p-2 font-medium text-gray-700">상태</th>
+                            <th className="w-[5.5%] p-2 font-medium text-gray-700">변경</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -422,12 +422,12 @@ const Order_Status = () => {
                                             });
                                         }}
                                     >
-                                        <td className="p-3">{isSameOid ? '' : item.createdAt?.slice(2, 10)}</td>
-                                        <td className="p-3">{isSameOid ? '' : item.oid}</td>
-                                        <td className="p-3">{isSameOid ? '' : item.id == '' ? '비회원' : item.id}</td>
-                                        <td className="p-3">{isSameOid ? '' : (item.ordererName || '-')}</td>
-                                        <td className="p-3">{categoryMap[item.category] || item.category}</td>
-                                        <td className={`p-3 text-black flex justify-between`}>
+                                        <td className="px-2 py-3">{isSameOid ? '' : item.createdAt?.slice(2, 10)}</td>
+                                        <td className="px-2 py-3">{isSameOid ? '' : item.oid}</td>
+                                        <td className="px-2 py-3">{isSameOid ? '' : item.id == '' ? '비회원' : item.id}</td>
+                                        <td className="px-2 py-3">{isSameOid ? '' : (item.ordererName || '-')}</td>
+                                        <td className="px-2 py-3">{categoryMap[item.category] || item.category}</td>
+                                        <td className={`px-2 py-3 text-black flex justify-between`}>
                                             <span className="align-middle">{item.title}</span>
                                             {item.category === 'customFrames' && (() => {
                                                 const has150 = hasStoredImagePath(item.thumbnailPreview);
@@ -447,13 +447,13 @@ const Order_Status = () => {
                                                 );
                                             })()}
                                         </td>
-                                        <td className="p-3">{item.quantity}</td>
+                                        <td className="px-2 py-3">{item.quantity}</td>
                                         {/* <td className="p-3 text-center">{item.price?.toLocaleString()}원</td> */}
-                                        <td className="p-3">{(item.price * item.quantity).toLocaleString()}원</td>
-                                        <td className={`p-3 font-semibold ${statusBadgeColor(item.orderStatus)}`}>
+                                        <td className="px-2 py-3">{(item.price * item.quantity).toLocaleString()}원</td>
+                                        <td className={`px-2 py-3 font-semibold ${statusBadgeColor(item.orderStatus)}`}>
                                             {item.orderStatus}
                                         </td>
-                                        <td className="p-3">
+                                        <td className="px-2 py-3">
                                             <select
                                                 value={item.orderStatus}
                                                 onClick={(e) => e.stopPropagation()} 

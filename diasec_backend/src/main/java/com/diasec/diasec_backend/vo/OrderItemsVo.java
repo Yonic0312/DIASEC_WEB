@@ -14,9 +14,7 @@ public class OrderItemsVo {
     private String title;
     private String author;
     private int quantity;
-    private int deposit;
     private int price;
-    private String period;
     private int finalPrice;
     private String size;
     private String thumbnail;
@@ -27,9 +25,6 @@ public class OrderItemsVo {
     private String trackingNumber;
     private String trackingCompany;
     private String finishType;
-
-    private String leaseStart;
-    private String leaseEnd;
 
     // 반품
     private String reason;
