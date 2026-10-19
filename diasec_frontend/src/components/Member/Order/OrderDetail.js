@@ -348,9 +348,14 @@ const OrderDetail = () => {
 
     // 주문 취소 함수
     const handleCancel = (item) => {
-        if (!window.confirm(`"${item.title}"을(를) 취소하시겠습니까?`)) return;
+        const status = order.items[0].orderStatus;
+        const isPaid = status === '결제완료';
+        const message = isPaid
+            ? '결제된 주문입니다. 취소 요청만 가능합니다. 취소 요청을 보내시겠습니까?'
+            : `"${item.title}"을(를) 취소하겠습니까?`
+        if (!window.confirm(message)) return;
 
-        fetch(`${API}/order/cancel`, {
+        fetch(`${API}${isPaid ? '/order/cancelRequest' : '/order/cancel'}`, {
             credentials:'include',
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -358,20 +363,23 @@ const OrderDetail = () => {
                 oid: item.oid, 
                 pid: item.pid,
                 usedCredit: order.usedCredit || 0,
-                id: member?.id
-            }) 
+                id: member?.id,
+                ...(!member?.id && guestPasswordFromSearch
+                    ? { guestPassword : guestPasswordFromSearch }
+                : {})
+            })
         })
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                toast.success('주문이 취소되었습니다.');
+                toast.success(isPaid ? '취소 요청이 접수되었습니다.' : '주문이 취소되었습니다.');
                 if (member) {
                     navigate('/orderList');
                 } else {
                     navigate('/guestOrderSearch');
                 }   
             } else {
-                toast.error('취소 실패 : ' + data.message);
+                toast.error((isPaid ? '취소 요청 실패:' : '취소 실패 : ') + data.message);
             }
         })
         .catch(err => toast.error('요청 실패'));
@@ -490,7 +498,7 @@ const OrderDetail = () => {
                                 </div>
                             )}
                             {/* 주문취소 */}
-                            {['입금대기', '결제완료', '배송준비중'].includes(order.items[0].orderStatus) && (
+                            {['입금대기', '결제완료'].includes(order.items[0].orderStatus) && (
                                 <button 
                                     className="
                                         px-2 py-1 
@@ -858,12 +866,31 @@ const OrderDetail = () => {
                                 className="
                                     text-black mb-2">결제 수단: <span className="font-normal">{order.paymentMethod}</span></span>
                         </div>
-                        {/* { order.paymentMethod === '무통장입금' && (
-                            <>
-                                <div><span className="text-black mb-2">입금자명:</span> {order.depositor}</div>
-                                <div><span className="text-black mb-2">입금 계좌:</span> {order.bankAccount}</div>
-                            </>
-                        )} */}
+                            {order.paymentMethod === '가상계좌' &&
+                                order.items?.some(it => it.orderStatus === '입금대기') && (() => {
+                                    const due = order.vbankDueDate ? new Date(String(order.vbankDueDate).replace(' ', 'T')) : null;
+                                    const expired = due && due.getTime() < Date.now();
+
+                                    if (expired) {
+                                        return (
+                                            <div className="text-red-500">
+                                                입금 기한({String(order.vbankDueDate).slice(0, 16)})이 지나 가상계좌가 만료되었습니다.<br />
+                                                다시 주문해 주시거나 고객센터로 문의해 주세요.
+                                            </div>
+                                        );
+                                    }
+                                    return (
+                                        <>
+                                        <div><span className="text-black mb-2">입금 은행:</span> {order.vbankName}</div>
+                                        <div><span className="text-black mb-2">입금 계좌:</span> {order.vbankAccount}</div>
+                                        <div><span className="text-black mb-2">예금주:</span> {order.vbankHolder}</div>
+                                        {order.vbankDueDate && (
+                                            <div><span className="text-black mb-2">입금 기한:</span> {String(order.vbankDueDate).slice(0, 16)} 까지</div>
+                                        )}
+                                    </>
+                                    )
+                                }
+                            )()}
                         <div><span className="text-black mb-2">총 상품금액:</span> {order.totalPrice.toLocaleString()}원</div>
                         <div><span className="text-black mb-2">적립금 사용:</span> {order.usedCredit.toLocaleString()}원</div>
                         <div><span className="text-black mb-2">배송비:</span> {order.deliveryFee.toLocaleString()}원</div>
