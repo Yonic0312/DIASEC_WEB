@@ -372,7 +372,6 @@ const Main_CustomFrames = () => {
         const tasks = filesToProcess.map((rawFile) => new Promise((resolve) => {
             const tempId = uuidv4();
             setCustomItems(prev => [
-                ...prev,
                 {
                     id: tempId,
                     imageSrc: '',
@@ -390,7 +389,8 @@ const Main_CustomFrames = () => {
                     retouch: { enabled: false, types: [], note: '' },
                     quantity: 1,
                     isUploading: true,
-                }
+                },
+                ...prev,
             ]);
 
             setSelectedItemId(tempId);
