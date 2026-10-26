@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.diasec.diasec_backend.dao.EventMapper;
 import com.diasec.diasec_backend.vo.EventVo;
@@ -23,7 +24,16 @@ public class EventService {
     }
 
     public void insertEvent(EventVo event) {
+        Integer min = eventMapper.selectMinSortOrder();
+        event.setSortOrder(min == null ? 1 : min - 1);
         eventMapper.insertEvent(event);
+    }
+
+    @Transactional
+    public void updateEventOrder(List<EventVo> orders) {
+        for (EventVo order : orders) {
+            eventMapper.updateEventSortOrder(order.getEventId(), order.getSortOrder());
+        }
     }
     
     public void updateEvent(EventVo event) {
