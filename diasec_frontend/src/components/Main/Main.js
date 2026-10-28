@@ -1123,7 +1123,7 @@ const Main = () => {
                         </div>
 
                         {mainHomeBlogs.length > reviewVisibleCount && (
-                            <div className="absolute top-1/2 -translate-y-1/2 w-full flex justify-between px-2 z-10">
+                            <div className="absolute top-1/2 -translate-y-1/2 w-full flex justify-between px-2 z-10 pointer-events-none">
                                 <button
                                     type="button"
                                     onClick={() => {
@@ -1135,7 +1135,8 @@ const Main = () => {
                                         xl:h-10 lg:h-9 md:h-8 h-7
                                         text-[12px]
                                         bg-white shadow-md rounded-full
-                                        flex justify-center items-center font-bold hover:bg-gray-100"
+                                        flex justify-center items-center font-bold hover:bg-gray-100
+                                        pointer-events-auto"
                                 >
                                     <ChevronLeft className="w-full h-full" />
                                 </button>
@@ -1150,7 +1151,8 @@ const Main = () => {
                                         xl:h-10 lg:h-9 md:h-8 h-7
                                         text-[12px]
                                         bg-white shadow-md rounded-full
-                                        flex justify-center items-center font-bold hover:bg-gray-100"
+                                        flex justify-center items-center font-bold hover:bg-gray-100
+                                        pointer-events-auto"
                                 >
                                     <ChevronRight className="w-full h-full" />
                                 </button>
