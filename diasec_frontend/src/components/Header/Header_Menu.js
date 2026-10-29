@@ -23,6 +23,7 @@ const Header_Menu = () => {
     const navigate = useNavigate();
 
     const [hovered, setHovered] = useState(null); // 드롭다운 상태 (PC)
+    const [bubbleHidden, setBubbleHidden] = useState(false);
 
     // 메뉴 정의 (상단 탭)
     const mainMenus =  useMemo(() => ([
@@ -238,6 +239,20 @@ const Header_Menu = () => {
         if (el) el.scrollTop = 0;
     }, [hovered]);
 
+    useEffect(() => {
+        const onScroll = () => {
+            if (document.body.style.position === 'fixed') return;
+
+            const y = window.scrollY || window.pageYOffset || 0;
+            if (y <= 0) setBubbleHidden(false);
+            else if (y > 32) setBubbleHidden(true);
+        };
+
+        onScroll();
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
+
     const isDropdownMenu = (key) => 
         key === "diasec" || categories.includes(key);
 
@@ -269,7 +284,7 @@ const Header_Menu = () => {
 
     // 데스크톱 메뉴 (기존)
     return (
-        <div className="relative hidden md:block items-center w-full h-fit px-2"
+        <div className="relative hidden md:block items-center w-full h-fit px-2 border-b-[1px]"
             onMouseLeave={scheduleClose}
             onMouseEnter={() => {
                 if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
@@ -280,6 +295,7 @@ const Header_Menu = () => {
                     {mainMenus.map(menu => (
                         <div
                             key={menu.key}
+                            className="relative"
                             onMouseEnter={() => openMenu(menu.key)}
                         >   
                             <button 
@@ -303,6 +319,33 @@ const Header_Menu = () => {
                                     )}
                                 </span>
                             </button>
+                            {/* 말풍선 */}
+                            {menu.key === 'customFrame' && (
+                                <div className={`
+                                    absolute left-0 right-0 bottom-full mb-1 flex justify-center z-[10000] pointer-events-none
+                                    transition-opacity duration-300 ease-out
+                                    ${bubbleHidden ? 'opacity-0' : 'opacity-100'}
+                                `}>
+                                    <div className="
+                                        relative
+                                        bg-[#fff] text-[#000]
+                                        text-[11px] px-2 py-1
+                                        rounded-full
+                                        font-medium
+                                        animate-bounceX
+                                        whitespace-nowrap
+                                        shadow-md
+                                    ">
+                                        내 사진으로 제작
+
+                                        <div className="
+                                            absolute -bottom-1 left-1/2 -translate-x-1/2
+                                            w-2 h-2 bg-[#fff]
+                                            rotate-45 shadow-md
+                                        "></div>
+                                    </div>
+                                </div>
+                            )}    
                         </div>
                     ))}
                     {/* ✅ 돋보기 검색 (PC) */}
