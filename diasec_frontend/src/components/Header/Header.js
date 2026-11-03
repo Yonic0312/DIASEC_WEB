@@ -9,6 +9,7 @@ import diasec2 from '../../assets/dropDownMenu/diasec/2.jpg';
 import diasec3 from '../../assets/dropDownMenu/diasec/3.jpg';
 import logo from '../../assets/images/logo.png'
 import HeaderSearch from './HeaderSearch';
+import PriceQuoteModal from '../common/PriceQuoteModal';
 
 const Header = () => {
     const API = process.env.REACT_APP_API_BASE;
@@ -19,6 +20,7 @@ const Header = () => {
     const [openSections, setOpenSections] = useState(null); // 아코디언 열린 섹션 키들
 
     const [supportOpen, setSupportOpen] = useState(false);
+    const [priceQuoteOpen, setPriceQuoteOpen] = useState(false);
     const supportRef = useRef(null);
 
     const toggleSection = (key) => {
@@ -29,6 +31,7 @@ const Header = () => {
     const mainMenus = useMemo(() => ([
         { key:'diasec',              label:'ONLY 디아섹',                  link: '/main_CompanyProfile' },
         { key:'customFrame',         label:'맞춤액자',               link:'/customFrames' },
+        { key:'discount',              label:'전시회',                  link: '/bulkOrderDiscount' },
         { key:'masterPiece',         label:'명화',                         link:'/main_Items?type=masterPiece' },
         { key:'koreanPainting',      label:'동양화',                        link:'/main_Items?type=koreanPainting' },
         { key:'photoIllustration',   label:'사진/일러스트',                  link:'/main_Items?type=photoIllustration' },
@@ -38,12 +41,13 @@ const Header = () => {
 
     // PC 고객센터 드롭다운과 동일 (모바일 드로어용)
     const supportLinks = useMemo(() => ([
+        { label: '가격 알아보기', action: 'priceQuote' },
         { label: '자주 묻는 질문', link: '/faqMain' },
         { label: '1:1문의', link: '/supportMyInquiryList' },
         { label: '공지사항', link: '/noticeList' },
         { label: '후기게시판', link: '/reviewBoard' },
         { label: '대량주문할인', link: '/bulkOrderDiscount' },
-        { label: '기업컨설팅', link: '/bizConsult' },
+        // { label: '기업컨설팅', link: '/bizConsult' }, // 기업 컨설팅
         { label: '업무제휴', link: '/bizPartner' },
     ]), []);
 
@@ -290,7 +294,14 @@ const Header = () => {
                                 <div className="py-2 bg-white">
                                     <button
                                         type="button"
-                                        onClick={() => { navigate("/faqMain"); setSupportOpen(false);}}
+                                        onClick={() => {setPriceQuoteOpen(true); setSupportOpen(false)}}
+                                        className="w-full text-left px-4 py-2 text-[13px] text-gray-700 bg-white hover:bg-[#ecd2af]/35 transition"
+                                    >
+                                        가격 알아보기
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => { navigate("/faqMain"); setSupportOpen(false); }}
                                         className="w-full text-left px-4 py-2 text-[13px] text-gray-700 bg-white hover:bg-[#ecd2af]/35 transition"
                                     >
                                         자주 묻는 질문
@@ -328,13 +339,13 @@ const Header = () => {
                                         대량주문할인
                                     </button>
 
-                                    <button
+                                    {/* <button
                                         type="button"
                                         onClick={() => { navigate("/bizConsult"); setSupportOpen(false);}}
                                         className="w-full text-left px-4 py-2 text-[13px] text-gray-700 bg-white hover:bg-[#ecd2af]/35 transition"
                                     >
                                         기업컨설팅
-                                    </button>
+                                    </button> */}
                                         
                                     <button
                                         type="button"
@@ -501,7 +512,7 @@ const Header = () => {
                                     <div className="px-2 pb-3 space-y-1 border-t border-[#d0ac88]/30 bg-white/60">
                                         {supportLinks.map((item) => (
                                             <button
-                                                key={item.link}
+                                                key={item.label}
                                                 type="button"
                                                 className="
                                                     w-full text-left px-3 py-2.5 rounded-lg
@@ -510,9 +521,14 @@ const Header = () => {
                                                     transition
                                                 "
                                                 onClick={() => {
-                                                    navigate(item.link);
+                                                    if (item.action === 'priceQuote'){
+                                                        setPriceQuoteOpen(true);
+                                                    } else if (item.link) {
+                                                        navigate(item.link);
+                                                    }
                                                     setDrawerOpen(false);
                                                     setOpenSections(null);
+                                                    return;
                                                 }}
                                             >
                                                 {item.label}
@@ -603,6 +619,10 @@ const Header = () => {
                     </div>
                 </div>
             </aside>
+            <PriceQuoteModal 
+                open={priceQuoteOpen}
+                onClose={() => setPriceQuoteOpen(false)}
+            />
         </div>
     );
 };
