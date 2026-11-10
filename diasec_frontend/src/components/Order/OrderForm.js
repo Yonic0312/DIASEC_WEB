@@ -125,8 +125,8 @@ const OrderForm = () => {
                 .then(res => {
                     setAddressList(res.data);
                     const defaultAddr = res.data.find(addr => addr.isDefault);
-                    if (defaultAddr) {setSelectedAddress(defaultAddr);
-                        setRecipient(defaultAddr.recipient || '');
+                    if (defaultAddr) {
+                        setSelectedAddress(defaultAddr);
                         setPostcode(defaultAddr.postcode || '');
                         setAddress(defaultAddr.address || '');
                         setDetailAddress(defaultAddr.detailAddress || '');
@@ -146,22 +146,24 @@ const OrderForm = () => {
     const [postcode, setPostcode] = useState('');
     const [address, setAddress] = useState('');
     const [detailAddress, setDetailAddress] = useState('');
-    const [isSameAsOrderer, setIsSameAsOrderer] = useState(false);
+    const [isSameAsOrderer, setIsSameAsOrderer] = useState(true);
 
     useEffect(() => {
         if (!selectedAddress) return;
-        
-        setRecipient(selectedAddress.recipient || '');
+
         setPostcode(selectedAddress.postcode || '');
         setAddress(selectedAddress.address || '');
         setDetailAddress(selectedAddress.detailAddress || '');
 
+        if (isSameAsOrderer) return;
+
+        setRecipient(selectedAddress.recipient || '');
         const raw = (selectedAddress.recipientPhone || selectedAddress.phone || '').replace(/\s+/g, '-');
         const [p1, p2, p3] = raw.split('-');
         setRecipientPhone1(p1 || '010');
         setRecipientPhone2(p2 || '');
         setRecipientPhone3(p3 || '');
-    }, [selectedAddress]);
+    }, [selectedAddress, isSameAsOrderer]);
 
     useEffect(() => {
         if (!isSameAsOrderer) return;
