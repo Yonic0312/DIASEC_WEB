@@ -71,12 +71,14 @@ const Order_Status = () => {
 
     const STATUS_GROUPS = {
         전체: [],
-        처리필요: ['입금대기', '취소요청', '교환신청', '반품신청'],
-        진행중: ['결제완료', '배송준비중', '배송중', '교환회수완료', '교환배송중', '반품회수완료', '환불처리중'],
+        진행중: [
+                '입금대기', '취소요청', '교환신청', '반품신청',
+                '결제완료', '배송준비중', '배송중', 
+                '교환회수완료', '교환배송중', '반품회수완료', '환불처리중'],
         완료: ['배송완료', '취소', '교환완료', '환불완료'],
     };
 
-    const [workFilter, setWorkFilter] = useState('전체');
+    const [workFilter, setWorkFilter] = useState('진행중');
 
     // 목록 불러오기
     useEffect(() => {
@@ -181,7 +183,6 @@ const Order_Status = () => {
         if (status === '배송준비중') return 'text-indigo-700'
         if (status === '배송중' || status === '교환배송중') return 'text-blue-600'
 
-        if (STATUS_GROUPS.처리필요.includes(status)) return 'text-yellow-600';
         if (STATUS_GROUPS.진행중.includes(status)) return 'text-blue-600';
         if (STATUS_GROUPS.완료.includes(status)) return 'text-green-600';
         return 'text-gray-600';
