@@ -130,6 +130,19 @@ const PRINT_ORDER_STYLES = `
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
+    .print-wrap .print-delivery-message {
+        margin-top: 10px;
+        font-size: 22px;
+        font-weight: 800;
+        color: #111 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    .print-wrap .print-delivery-message .print-note-label {
+        font-size: 22px;
+        font-weight: 800;
+        color: #2563eb !important;
+    }
     @media print {
         @page {
             size: A4;
@@ -746,6 +759,14 @@ const Order_Detail = () => {
         };
     };
 
+    const boxSize = (() => {
+        const { wCm, hCm } = parseSizeToCm(order.items[0]?.size);
+        const w = Number(wCm);
+        const h = Number(hCm);
+        if (!w || !h) return null;
+        return { bW: w + 5, bH: h + 5 };
+    })();
+
     const openSizeModal = () => {
         const { wCm, hCm } = parseSizeToCm(order?.items?.[0]?.size);
         setSizeWidthCm(wCm);
@@ -1224,10 +1245,6 @@ const Order_Detail = () => {
                 <div>
                     <span className="print-note-label">구매자 요청:</span> {order.buyerRequest}
                 </div>
-
-                <div>
-                    <span className="print-note-label">배송 메시지:</span> {order.deliveryMessage}
-                </div>
             </div>
                     
             {/* 반품 입력창 */}
@@ -1623,6 +1640,20 @@ const Order_Detail = () => {
                         {shippingSaving ? '저장 중…' : '배송지 정보 저장'}
                     </button>
                 </div>
+            </div>
+            
+            <br/><br/><br/><br/><br/>
+            <div>
+                <span className="print-note-label">발송자 : 디아섹코리아(010-4231-5879)</span>
+                &emsp;&emsp;&emsp;
+                {boxSize && (
+                    <span className="print-note-label">박스 규격 : {boxSize.bW} x {boxSize.bH}</span>
+                )}
+            </div>
+            <br/>
+            <hr className="border-dotted"/>
+            <div className="print-delivery-message">
+                <span className="print-note-label">배송 메시지:</span> {order.deliveryMessage}
             </div>
 
             {/* 사이즈 수정 모달 */}
