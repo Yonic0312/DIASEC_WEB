@@ -63,9 +63,9 @@ const Biz_PartnerMain = () => {
                 <section className="space-y-3">
                     <h2 className="text-xl font-bold">파트너십 혜택</h2>
                     <ul className="list-disc pl-5 space-y-1 text-gray-700">
-                        <li>가입 승인 후 홈페이지 결제 시 10% 할인이 자동 적용됩니다.</li>
                         <li>거래 실적에 따라 할인율이 최대 30%까지 상향됩니다.</li>
                         <li>홈페이지 기본 할인과 등급 할인이 합산되어 적용됩니다. (최대 40%)</li>
+                        <li>대량주문 할인과 파트너 등급 할인은 중복되지 않으며, 둘 중 더 높은 할인율이 적용됩니다.</li>
                     </ul>
                 </section>
 
@@ -106,6 +106,9 @@ const Biz_PartnerMain = () => {
                         </table>
                     </div>
                     <div className="text-xs text-gray-500 space-y-1">
+                        <p>
+                            ※ 대량주문 할인과 파트너 등급 할인은 중복되지 않으며, <strong className="text-gray-600">더 높은 할인율</strong>이 적용됩니다.
+                        </p>
                         <p>
                             ※ 파트너 할인은 홈페이지 기본 할인에 <strong className="text-gray-600">등급별 추가 할인</strong>이
                             합산되어 주문 시 자동 적용됩니다.
