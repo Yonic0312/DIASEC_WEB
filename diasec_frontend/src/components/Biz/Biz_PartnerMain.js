@@ -63,9 +63,19 @@ const Biz_PartnerMain = () => {
                 <section className="space-y-3">
                     <h2 className="text-xl font-bold">파트너십 혜택</h2>
                     <ul className="list-disc pl-5 space-y-1 text-gray-700">
-                        <li>파트너 전용 공급가 : 일반 고객과는 차별화된 B2B 전용 단가 제공</li>
-                        <li>공동 마케팅 : 디아섹코리아 SNS 및 홈페이지를 통한 파트너사 홍보 지원</li>
-                        <li>우선제작 시스템 : 파트너사 주문건에 대한 우선 제작 및 빠른 배송 운영시스템 적용</li>
+                        <li>가입 승인 후 홈페이지 결제 시 10% 할인이 자동 적용됩니다.</li>
+                        <li>거래 실적에 따라 할인율이 최대 30%까지 상향됩니다.</li>
+                        <li>홈페이지 기본 할인과 등급 할인이 합산되어 적용됩니다. (최대 40%)</li>
+                    </ul>
+                </section>
+
+                <section className="space-y-3">
+                    <h2 className="text-xl font-bold">거래 안내</h2>
+                    <ul className="list-disc pl-5 space-y-1 text-gray-700">
+                        <li>결제 완료된 주문 금액은 실시간 누적되어 파트너 등급에 반영됩니다. (배송비, 설치비, 부가세, 별도 외주 비용 제외)</li>
+                        <li>모든 주문은 선결제이며, 월말 정산 및 후불 거래는 제공하지 않습니다.</li>
+                        <li>누적 거래금액, 결제 이력, 주문 규모 및 협업 지속성에 따라 파트너 등급이 조정될 수 있습니다.</li>
+                        <li>등급, 누적 거래실적, 적용 할인율은 마이페이지 &gt; 업무제휴 현황에서 확인할 수 있습니다.</li>
                     </ul>
                 </section>
 
