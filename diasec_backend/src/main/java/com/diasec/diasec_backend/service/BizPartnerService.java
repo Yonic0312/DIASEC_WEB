@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 public class BizPartnerService {
     private final BizPartnerMapper bizPartnerMapper;
     private final ImageUtil imageUtil;
+    private final SolapiService solapiService;
 
     public void apply(BizPartnerApplicationVo vo) {
         if (!vo.isContractAgreed()) throw new IllegalArgumentException("계약 동의 필수");
@@ -81,12 +82,27 @@ public class BizPartnerService {
         String grade = PartnerGradeUtil.resolveGrade(cumulative);
         bizPartnerMapper.approveApplication(id, adminReply);
         bizPartnerMapper.updateMemberPartner(app.getMemberId(), "승인", grade);
+        sendResultSms(app.getPhone());
     }
 
     public void reject(Long id, String adminReply) {
         var app = bizPartnerMapper.getApplicationDetail(id);
         bizPartnerMapper.rejectApplication(id, adminReply);
         bizPartnerMapper.updateMemberPartner(app.getMemberId(), "미승인", null);
+        sendResultSms(app.getPhone());
+    }
+
+    private void sendResultSms(String phone) {
+        if (phone == null || phone.isBlank()) return;
+        try {
+            String msg =
+                "[DIASEC KOREA]\n"
+                + "업무제휴 신청이 처리되었습니다.\n"
+                + "마이페이지 > 업무제휴 현황에서 결과를 확인해 주세요.";
+            solapiService.send(phone, msg);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public List<BizPartnerApplicationVo> getApplicationList() {
