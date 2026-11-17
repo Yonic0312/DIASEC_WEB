@@ -1073,6 +1073,7 @@ const Order_Detail = () => {
                     >
                             주문내역 삭제
                         </button>
+            
                         <select
                             value={order.items[0].orderStatus}
                             onClick={(e) => e.stopPropagation()} 
