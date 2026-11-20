@@ -747,7 +747,7 @@ const Main = () => {
                     </p> */}
                 </div>
                 
-                <div className='flex flex-wrap justify-center items-center 
+                <div className='flex flex-wrap justify-center items-center
                     xl:gap-4 lg:gap-3 md:gap-2 gap-[2px]'>
                     {filteredCategoryList.map((item) => {
                         const isActive = bestCategory === item.name;
@@ -802,30 +802,31 @@ const Main = () => {
                                         />
                                     </div>
                                 </div>
+                                <div className="ml-2">
+                                    <span className="
+                                        lg:text-[16px]
+                                        line-clamp-1
+                                        font-semibold mt-4">{item.title}</span>
+                                    <span className="
+                                        lg:text-[14px] text-[clamp(13.5px,1.368vw,14px)]
+                                        line-clamp-1
+                                        font-bold text-[#CDC9C3]">
+                                            {item.author}
+                                    </span>
 
-                                <span className="
-                                    lg:text-[18px] text-[clamp(16px,1.759vw,18px)]
-                                    line-clamp-1
-                                    font-bold mt-4">{item.title}</span>
-                                <span className="
-                                    lg:text-[14px] text-[clamp(13.5px,1.368vw,14px)]
-                                    line-clamp-1
-                                    font-bold text-[#CDC9C3]">
-                                        {item.author}
-                                </span>
-
-                                <span className="mt-[2px] font-semibold text-[#d0ac88]">
-                                    {bestPriceMap[item.pid] != null ? (
-                                        <SitePriceRow
-                                            unitPrice={bestPriceMap[item.pid]}
-                                            quantity={1}
-                                            suffix="~"
-                                            neutralClassName={`${SITE_PRICE_TEXT} font-semibold text-[#d0ac88]`}
-                                        />
-                                    ) : (
-                                        ''
-                                    )}
-                                </span>
+                                    <span className="mt-[2px] font-semibold text-[#d0ac88]">
+                                        {bestPriceMap[item.pid] != null ? (
+                                            <SitePriceRow
+                                                unitPrice={bestPriceMap[item.pid]}
+                                                quantity={1}
+                                                suffix="~"
+                                                neutralClassName={`${SITE_PRICE_TEXT} font-semibold text-[#d0ac88]`}
+                                            />
+                                        ) : (
+                                            ''
+                                        )}
+                                    </span>
+                                </div>
                                 <hr className="my-1" />
                             </div>
                         )
@@ -918,9 +919,9 @@ const Main = () => {
                                 </div>
 
                                 <span className="
-                                    lg:text-[18px] text-[clamp(16px,1.759vw,18px)]
+                                    lg:text-[16px]
                                     line-clamp-1
-                                    font-bold mt-4">{item.title}</span>
+                                    font-semibold mt-4">{item.title}</span>
 
                                 <span className="
                                     lg:text-[14px] text-[clamp(13.5px,1.368vw,14px)]
@@ -990,7 +991,7 @@ const Main = () => {
                                 <div className="py-2">
                                     <div className="
                                         md:text-base text-[clamp(14px,2.085vw,16px)]
-                                        text-orange-400 mb-1">
+                                        text-orange-400">
                                         {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
                                     </div>
                                     <div className="
@@ -1319,7 +1320,7 @@ const Main = () => {
                                         {faq.question}
                                     </div>
                                     <span className="text-gray-400 shrink-0">
-                                        {expandedFaqId === faq.faqId ? '▲' : '▼'}
+                                        {expandedFaqId === faq.faqId ? '▼' : '▲'}
                                     </span>
                                 </div>
                                 {expandedFaqId === faq.faqId && (
