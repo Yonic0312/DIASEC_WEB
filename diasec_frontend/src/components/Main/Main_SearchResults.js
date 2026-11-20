@@ -40,19 +40,15 @@ const Main_SearchResults = () => {
 
     const [priceMap, setPriceMap] = useState({});
 
-    // 토글 (접고 펴기)
-    const [openMap, setOpenMap] = useState(() => 
-        Object.fromEntries(CATS.map(c => [c.key, true]))
-    );
+    // 토글 (접고 펴기) — 결과가 있는 카테고리만 펼침
+    const buildOpenMap = (next) =>
+        Object.fromEntries(CATS.map((c) => [c.key, (next?.[c.key]?.length || 0) > 0]));
+
+    const [openMap, setOpenMap] = useState(() => buildOpenMap(null));
 
     const toggleOpen = (key) => {
         setOpenMap(prev => ({ ...prev, [key]: !prev[key]}));
     };
-
-    // 검색어 바뀌면 "기본 전부 열림"
-    useEffect(() => {
-        setOpenMap(Object.fromEntries(CATS.map(c => [c.key, true])));
-    }, [q]);
 
 
     const totalCount = useMemo(() => {
@@ -125,8 +121,10 @@ const Main_SearchResults = () => {
 
     useEffect(() => {
         if (!q) {
-            setData({ masterPiece: [], koreanPainting: [], photoIllustration: [], fengShui: [] });
+            const empty = { masterPiece: [], koreanPainting: [], photoIllustration: [], fengShui: [] };
+            setData(empty);
             setCounts({ masterPiece: 0, koreanPainting: 0, photoIllustration: 0, fengShui: 0});
+            setOpenMap(buildOpenMap(empty));
             return;
         }
 
@@ -152,10 +150,13 @@ const Main_SearchResults = () => {
                     photoIllustration: next.photoIllustration.length,
                     fengShui: next.fengShui.length,
                 });
+                setOpenMap(buildOpenMap(next));
             } catch (e) {
                 console.error("전체 검색 실패", e);
-                setData({ masterPiece: [], koreanPainting: [], photoIllustration: [], fengShui: [] });
-                setCounts({ masterPiece: 0, koreanPainting: 0, photoIllustration: 0, fengShui: 0 })
+                const empty = { masterPiece: [], koreanPainting: [], photoIllustration: [], fengShui: [] };
+                setData(empty);
+                setCounts({ masterPiece: 0, koreanPainting: 0, photoIllustration: 0, fengShui: 0 });
+                setOpenMap(buildOpenMap(empty));
             } finally {
                 setLoading(false);
             }
@@ -179,7 +180,7 @@ const Main_SearchResults = () => {
                         }
                         onMouseEnter={() => setHoveredPid(p.pid)}
                         onMouseLeave={() => setHoveredPid(null)}
-                        className="text- left"
+                        className="text-left"
                     >
                         <div className="flex flex-col w-full h-auto cursor-pointer">
                             <div className="flex justify-center items-center w-full aspect-[292/292] overflow-hidden bg-white">
