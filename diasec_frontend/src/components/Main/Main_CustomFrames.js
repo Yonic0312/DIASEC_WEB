@@ -388,6 +388,7 @@ const Main_CustomFrames = () => {
                             const preview150File = dataUrlToFile(preview150, `${uuidv4()}_150.jpg`);
 
                             setImageSrc(preview800);
+                            setPaperKey(null);
 
                             // 사이즈 계산
                             const ratio = img.width / img.height;

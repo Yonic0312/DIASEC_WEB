@@ -236,10 +236,6 @@ const Header = () => {
                             flex-row items-center
                         "
                     >
-                        <button type="button" onClick={() => setPriceQuoteOpen(true)}>
-                            가격알아보기
-                        </button>
-                        <span className="opacity-15">|</span>
                         {member ? (
                             <>  
                                 {/* 관리자 */}
@@ -249,6 +245,10 @@ const Header = () => {
                                         <span className="opacity-15">|</span>
                                     </>
                                 )}
+                                <button type="button" onClick={() => setPriceQuoteOpen(true)}>
+                                    가격알아보기
+                                </button>
+                                <span className="opacity-15">|</span>
                                 <button onClick={handleLogout}>로그아웃</button>
                                 <span className="opacity-15">|</span>
                                 <button onClick={() => navigate('/mypage')}>마이페이지</button>
@@ -257,6 +257,10 @@ const Header = () => {
                             </>
                         ) : (
                             <>
+                                <button type="button" onClick={() => setPriceQuoteOpen(true)}>
+                                    가격알아보기
+                                </button>
+                                <span className="opacity-15">|</span>
                                 <button onClick={() => navigate('/userLogin')}>로그인</button>
                                 <span className="opacity-15">|</span>
                                 <button onClick={() => navigate('/join')}>회원가입</button>
