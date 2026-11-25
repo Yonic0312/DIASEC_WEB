@@ -1643,7 +1643,7 @@ const Order_Detail = () => {
                 </div>
             </div>
             
-            <br/><br/><br/><br/><br/>
+            <br/><br/><br/><br/>
             <div>
                 <span className="print-note-label">발송자 : 디아섹코리아(010-4231-5879)</span>
                 &emsp;&emsp;&emsp;
